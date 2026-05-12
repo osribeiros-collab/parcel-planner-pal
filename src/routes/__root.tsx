@@ -7,8 +7,53 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
+import { Tractor, CalendarDays } from "lucide-react";
+import { Toaster } from "@/components/ui/sonner";
 
 import appCss from "../styles.css?url";
+
+function AppShell() {
+  return (
+    <div className="min-h-screen bg-background pb-20">
+      <Toaster richColors position="top-right" />
+      <header className="border-b border-primary/20 bg-gradient-to-r from-background via-secondary/40 to-background">
+        <div className="mx-auto flex max-w-5xl items-center gap-3 px-6 py-5">
+          <div className="flex h-11 w-11 items-center justify-center rounded-md bg-gradient-to-br from-primary to-primary/60 text-primary-foreground shadow-[0_0_20px_-4px_oklch(0.78_0.15_85/0.6)]">
+            <Tractor className="h-6 w-6" />
+          </div>
+          <div>
+            <h1 className="text-lg font-semibold tracking-tight text-primary">Controle de Produção — Harvest</h1>
+            <p className="text-sm text-muted-foreground">Fazendas, talhões e relatórios diários</p>
+          </div>
+        </div>
+      </header>
+      <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
+        <Outlet />
+      </main>
+      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-primary/20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/70">
+        <div className="mx-auto flex max-w-5xl">
+          <Link
+            to="/"
+            className="flex flex-1 flex-col items-center gap-1 py-3 text-xs text-muted-foreground transition-colors"
+            activeProps={{ className: "flex flex-1 flex-col items-center gap-1 py-3 text-xs text-primary font-semibold" }}
+            activeOptions={{ exact: true }}
+          >
+            <Tractor className="h-5 w-5" />
+            Fazendas
+          </Link>
+          <Link
+            to="/relatorios"
+            className="flex flex-1 flex-col items-center gap-1 py-3 text-xs text-muted-foreground transition-colors"
+            activeProps={{ className: "flex flex-1 flex-col items-center gap-1 py-3 text-xs text-primary font-semibold" }}
+          >
+            <CalendarDays className="h-5 w-5" />
+            Relatórios
+          </Link>
+        </div>
+      </nav>
+    </div>
+  );
+}
 
 function NotFoundComponent() {
   return (
