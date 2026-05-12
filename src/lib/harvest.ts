@@ -1,0 +1,61 @@
+import { useEffect, useState } from "react";
+
+export type Talhao = {
+  id: string;
+  numero: string;
+  vmi: string;
+  metaArvH: string;
+  metaM3H: string;
+};
+
+export type Fazenda = {
+  id: string;
+  codigo: string;
+  nome: string;
+  talhoes: Talhao[];
+};
+
+export type Relatorio = {
+  id: string;
+  data: string; // YYYY-MM-DD
+  fazendaId: string;
+  talhaoId: string;
+  horimetroInicial: string;
+  horimetroFinal: string;
+  arv: string;
+  horaTrabalhando: string; // HH:MM
+  paradaOperacional: string; // HH:MM
+  paradaMecanica: string; // HH:MM
+  obs: string;
+};
+
+export const FAZENDAS_KEY = "harvest:fazendas";
+export const RELATORIOS_KEY = "harvest:relatorios";
+
+export function useLocalState<T>(key: string, initial: T) {
+  const [value, setValue] = useState<T>(initial);
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw) setValue(JSON.parse(raw));
+    } catch {}
+    setHydrated(true);
+  }, [key]);
+
+  useEffect(() => {
+    if (hydrated) localStorage.setItem(key, JSON.stringify(value));
+  }, [key, value, hydrated]);
+
+  return [value, setValue] as const;
+}
+
+export const fazendaLabel = (f: Fazenda) => `${f.codigo} - 🌲 - ${f.nome}`;
+
+export const toDateKey = (d: Date) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
