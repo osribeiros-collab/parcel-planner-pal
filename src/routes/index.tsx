@@ -1,233 +1,292 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash2, Plus, ChevronDown, ChevronRight } from "lucide-react";
-import { toast } from "sonner";
+import { Progress } from "@/components/ui/progress";
+import {
+  TreePine,
+  Clock,
+  Pause,
+  Wrench,
+  Target,
+  ArrowUp,
+  ArrowDown,
+  Boxes,
+} from "lucide-react";
 import {
   Fazenda,
-  Talhao,
+  Relatorio,
   FAZENDAS_KEY,
+  RELATORIOS_KEY,
   useLocalState,
 } from "@/lib/harvest";
+import type { Modulo } from "./modulos";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+  Cell,
+} from "recharts";
 
 export const Route = createFileRoute("/")({
-  component: Index,
+  component: Dashboard,
   head: () => ({
     meta: [
-      { title: "Harvest — Fazendas" },
-      { name: "description", content: "Cadastro de fazendas e talhões." },
+      { title: "Harvest — Início" },
+      { name: "description", content: "Painel com produtividade, metas e totais." },
     ],
   }),
 });
 
-function Index() {
-  const [fazendas, setFazendas] = useLocalState<Fazenda[]>(FAZENDAS_KEY, []);
-  const [codigo, setCodigo] = useState("");
-  const [nome, setNome] = useState("");
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const [showForm, setShowForm] = useState<Record<string, boolean>>({});
-  const [draft, setDraft] = useState<Record<string, Omit<Talhao, "id">>>({});
+const MODULOS_KEY = "harvest:modulos";
 
-  const salvarFazenda = () => {
-    if (!codigo.trim() || !nome.trim()) {
-      toast.error("Informe o código e o nome da fazenda");
-      return;
+const parseHoras = (hhmm: string): number => {
+  if (!hhmm) return 0;
+  const [h, m] = hhmm.split(":").map((x) => Number(x) || 0);
+  return h + m / 60;
+};
+
+const parseNum = (s: string) => {
+  const n = Number(String(s ?? "").replace(/\./g, "").replace(",", "."));
+  return Number.isFinite(n) ? n : 0;
+};
+
+const fmt = (n: number, d = 2) =>
+  new Intl.NumberFormat("pt-BR", { maximumFractionDigits: d }).format(n);
+
+const fmtH = (h: number) => {
+  const hh = Math.floor(h);
+  const mm = Math.round((h - hh) * 60);
+  return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+};
+
+function Dashboard() {
+  const [fazendas] = useLocalState<Fazenda[]>(FAZENDAS_KEY, []);
+  const [relatorios] = useLocalState<Relatorio[]>(RELATORIOS_KEY, []);
+  const [modulos] = useLocalState<Modulo[]>(MODULOS_KEY, []);
+
+  const data = useMemo(() => {
+    let arv = 0;
+    let trabalho = 0;
+    let opStop = 0;
+    let mecStop = 0;
+    let m3Total = 0;
+    let metaArvHsoma = 0;
+    let metaM3Hsoma = 0;
+    let count = 0;
+
+    for (const r of relatorios) {
+      const f = fazendas.find((x) => x.id === r.fazendaId);
+      const t = f?.talhoes.find((x) => x.id === r.talhaoId);
+      const a = parseNum(r.arv);
+      const ht = parseHoras(r.horaTrabalhando);
+      arv += a;
+      trabalho += ht;
+      opStop += parseHoras(r.paradaOperacional);
+      mecStop += parseHoras(r.paradaMecanica);
+      const vmi = parseNum(t?.vmi || "0");
+      m3Total += a * vmi;
+      if (t) {
+        metaArvHsoma += parseNum(t.metaArvH);
+        metaM3Hsoma += parseNum(t.metaM3H);
+        count += 1;
+      }
     }
-    const nova: Fazenda = {
-      id: crypto.randomUUID(),
-      codigo: codigo.trim(),
-      nome: nome.trim(),
-      talhoes: [],
-    };
-    setFazendas((prev) => [nova, ...prev]);
-    setExpanded((p) => ({ ...p, [nova.id]: true }));
-    setCodigo("");
-    setNome("");
-    toast.success("Fazenda cadastrada");
-  };
 
-  const removerFazenda = (id: string) => {
-    setFazendas((prev) => prev.filter((f) => f.id !== id));
-  };
+    const prod = trabalho > 0 ? arv / trabalho : 0;
+    const m3h = trabalho > 0 ? m3Total / trabalho : 0;
+    const metaArvHmed = count > 0 ? metaArvHsoma / count : 0;
+    const metaM3Hmed = count > 0 ? metaM3Hsoma / count : 0;
 
-  const toggle = (id: string) => setExpanded((p) => ({ ...p, [id]: !p[id] }));
+    return { arv, trabalho, opStop, mecStop, m3Total, prod, m3h, metaArvHmed, metaM3Hmed };
+  }, [relatorios, fazendas]);
 
-  const getDraft = (id: string) =>
-    draft[id] ?? { numero: "", vmi: "", metaArvH: "", metaM3H: "" };
+  const moduloAtivo = modulos[0];
+  const metaPessoal = moduloAtivo
+    ? parseNum(moduloAtivo.metaTotal) /
+      Math.max(1, parseNum(moduloAtivo.qtdMaquinas)) /
+      Math.max(1, parseNum(moduloAtivo.qtdOperadoresPorMaquina))
+    : 0;
+  const pctMeta = metaPessoal > 0 ? (data.m3Total / metaPessoal) * 100 : 0;
 
-  const updateDraft = (id: string, patch: Partial<Omit<Talhao, "id">>) =>
-    setDraft((p) => ({ ...p, [id]: { ...getDraft(id), ...patch } }));
+  const chart = [
+    {
+      name: "Arv/h",
+      Meta: Number(data.metaArvHmed.toFixed(2)),
+      Produzido: Number(data.prod.toFixed(2)),
+    },
+    {
+      name: "m³/h",
+      Meta: Number(data.metaM3Hmed.toFixed(2)),
+      Produzido: Number(data.m3h.toFixed(2)),
+    },
+  ];
 
-  const addTalhao = (fid: string) => {
-    const d = getDraft(fid);
-    if (!d.numero.trim()) {
-      toast.error("Informe o número do talhão");
-      return;
-    }
-    setFazendas((prev) =>
-      prev.map((f) =>
-        f.id === fid
-          ? {
-              ...f,
-              talhoes: [
-                ...f.talhoes,
-                {
-                  id: crypto.randomUUID(),
-                  numero: d.numero.trim(),
-                  vmi: d.vmi.trim(),
-                  metaArvH: d.metaArvH.trim(),
-                  metaM3H: d.metaM3H.trim(),
-                },
-              ],
-            }
-          : f,
-      ),
-    );
-    setDraft((p) => ({ ...p, [fid]: { numero: "", vmi: "", metaArvH: "", metaM3H: "" } }));
-    setShowForm((p) => ({ ...p, [fid]: false }));
-    toast.success("Talhão adicionado");
-  };
-
-  const removeTalhao = (fid: string, tid: string) => {
-    setFazendas((prev) =>
-      prev.map((f) =>
-        f.id === fid ? { ...f, talhoes: f.talhoes.filter((t) => t.id !== tid) } : f,
-      ),
+  const trend = (val: number, meta: number) => {
+    if (meta <= 0) return null;
+    const ok = val >= meta;
+    return (
+      <span
+        className={`inline-flex items-center gap-1 text-xs font-semibold ${ok ? "text-emerald-400" : "text-red-400"}`}
+      >
+        {ok ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+        {fmt(Math.abs(val - meta))}
+      </span>
     );
   };
 
   return (
-    <div className="space-y-8">
-      <Card className="border-primary/20">
+    <div className="space-y-6">
+      <Card className="border-primary/20 bg-gradient-to-br from-secondary/30 to-background">
         <CardHeader>
-          <CardTitle className="text-primary">Nova fazenda</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-primary">
+            <Boxes className="h-5 w-5" /> Meta pessoal (m³)
+          </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="codigo">Código da fazenda</Label>
-              <Input id="codigo" value={codigo} onChange={(e) => setCodigo(e.target.value)} placeholder="Ex: 2020" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="nome">Nome da fazenda</Label>
-              <Input id="nome" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: Santa Isabel" />
-            </div>
-          </div>
-          <div className="flex justify-end">
-            <Button onClick={salvarFazenda}>Salvar fazenda</Button>
-          </div>
+        <CardContent className="space-y-3">
+          {moduloAtivo ? (
+            <>
+              <div className="flex items-end justify-between gap-3">
+                <div>
+                  <p className="text-3xl font-bold text-primary">{fmt(pctMeta, 1)}%</p>
+                  <p className="text-xs text-muted-foreground">
+                    {fmt(data.m3Total)} m³ de {fmt(metaPessoal)} m³
+                  </p>
+                </div>
+                {trend(pctMeta, 100)}
+              </div>
+              <Progress value={Math.min(100, pctMeta)} />
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Cadastre um módulo para visualizar a meta pessoal.
+            </p>
+          )}
         </CardContent>
       </Card>
 
-      <section className="space-y-3">
-        <h2 className="text-base font-semibold text-primary">Fazendas cadastradas</h2>
-        {fazendas.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nenhuma fazenda cadastrada ainda.</p>
-        ) : (
-          <div className="grid gap-3">
-            {fazendas.map((f) => {
-              const isOpen = !!expanded[f.id];
-              const d = getDraft(f.id);
-              return (
-                <Card key={f.id} className="border-primary/20">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                    <button onClick={() => toggle(f.id)} className="flex flex-1 items-center gap-2 text-left">
-                      {isOpen ? (
-                        <ChevronDown className="h-4 w-4 text-primary" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4 text-primary" />
-                      )}
-                      <div>
-                        <CardTitle className="text-base text-primary">{f.nome}</CardTitle>
-                        <p className="text-xs text-muted-foreground">
-                          Código: {f.codigo} · {f.talhoes.length} talhão(ões)
-                        </p>
-                      </div>
-                    </button>
-                    <Button variant="ghost" size="icon" onClick={() => removerFazenda(f.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </CardHeader>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard
+          icon={<TreePine className="h-4 w-4" />}
+          label="Árvores"
+          value={fmt(data.arv, 0)}
+        />
+        <StatCard
+          icon={<Target className="h-4 w-4" />}
+          label="Total m³"
+          value={fmt(data.m3Total)}
+        />
+        <StatCard
+          icon={<Clock className="h-4 w-4" />}
+          label="Trabalho"
+          value={fmtH(data.trabalho)}
+        />
+        <StatCard
+          icon={<Pause className="h-4 w-4" />}
+          label="Parada op."
+          value={fmtH(data.opStop)}
+        />
+        <StatCard
+          icon={<Wrench className="h-4 w-4" />}
+          label="Parada mec."
+          value={fmtH(data.mecStop)}
+        />
+      </div>
 
-                  {isOpen && (
-                    <CardContent className="space-y-4">
-                      {f.talhoes.length > 0 && (
-                        <div className="overflow-x-auto rounded-md border border-primary/10">
-                          <table className="w-full text-sm">
-                            <thead className="bg-secondary/40 text-left text-xs text-primary">
-                              <tr>
-                                <th className="px-3 py-2 font-medium">Talhão</th>
-                                <th className="px-3 py-2 font-medium">VMI</th>
-                                <th className="px-3 py-2 font-medium">Arv/h</th>
-                                <th className="px-3 py-2 font-medium">m³/h</th>
-                                <th className="px-3 py-2"></th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {f.talhoes.map((t) => (
-                                <tr key={t.id} className="border-t border-primary/10">
-                                  <td className="px-3 py-2">{t.numero}</td>
-                                  <td className="px-3 py-2">{t.vmi || "—"}</td>
-                                  <td className="px-3 py-2">{t.metaArvH || "—"}</td>
-                                  <td className="px-3 py-2">{t.metaM3H || "—"}</td>
-                                  <td className="px-3 py-2 text-right">
-                                    <Button variant="ghost" size="icon" onClick={() => removeTalhao(f.id, t.id)}>
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-
-                      {showForm[f.id] ? (
-                        <div className="rounded-lg border border-primary/20 bg-secondary/20 p-4">
-                          <h3 className="mb-3 text-sm font-medium text-primary">Novo talhão</h3>
-                          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                            <div className="space-y-1.5">
-                              <Label className="text-xs">Nº do talhão</Label>
-                              <Input value={d.numero} onChange={(e) => updateDraft(f.id, { numero: e.target.value })} placeholder="01" />
-                            </div>
-                            <div className="space-y-1.5">
-                              <Label className="text-xs">VMI</Label>
-                              <Input value={d.vmi} onChange={(e) => updateDraft(f.id, { vmi: e.target.value })} placeholder="0,00" inputMode="decimal" />
-                            </div>
-                            <div className="space-y-1.5">
-                              <Label className="text-xs">Meta Arv/h</Label>
-                              <Input value={d.metaArvH} onChange={(e) => updateDraft(f.id, { metaArvH: e.target.value })} placeholder="0" inputMode="decimal" />
-                            </div>
-                            <div className="space-y-1.5">
-                              <Label className="text-xs">Meta m³/h</Label>
-                              <Input value={d.metaM3H} onChange={(e) => updateDraft(f.id, { metaM3H: e.target.value })} placeholder="0" inputMode="decimal" />
-                            </div>
-                          </div>
-                          <div className="mt-3 flex justify-end gap-2">
-                            <Button variant="ghost" onClick={() => setShowForm((p) => ({ ...p, [f.id]: false }))}>
-                              Cancelar
-                            </Button>
-                            <Button onClick={() => addTalhao(f.id)}>
-                              <Plus className="mr-1 h-4 w-4" /> Salvar talhão
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <Button variant="secondary" onClick={() => setShowForm((p) => ({ ...p, [f.id]: true }))}>
-                          <Plus className="mr-1 h-4 w-4" /> Adicionar talhão
-                        </Button>
-                      )}
-                    </CardContent>
-                  )}
-                </Card>
-              );
-            })}
+      <Card className="border-primary/20">
+        <CardHeader>
+          <CardTitle className="text-primary">Produtividade x Meta</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-72 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chart} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.78 0.15 85 / 0.15)" />
+                <XAxis dataKey="name" stroke="oklch(0.78 0.15 85)" />
+                <YAxis stroke="oklch(0.78 0.15 85)" />
+                <Tooltip
+                  contentStyle={{
+                    background: "oklch(0.16 0.02 85)",
+                    border: "1px solid oklch(0.78 0.15 85 / 0.4)",
+                    borderRadius: 8,
+                    color: "oklch(0.98 0 0)",
+                  }}
+                />
+                <Legend />
+                <Bar dataKey="Meta" fill="oklch(0.55 0.05 85)" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="Produzido" radius={[6, 6, 0, 0]}>
+                  {chart.map((row, i) => (
+                    <Cell
+                      key={i}
+                      fill={
+                        row.Produzido >= row.Meta
+                          ? "oklch(0.78 0.15 85)"
+                          : "oklch(0.55 0.20 25)"
+                      }
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           </div>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            <MiniRow label="Arv/h" val={data.prod} meta={data.metaArvHmed} />
+            <MiniRow label="m³/h" val={data.m3h} meta={data.metaM3Hmed} />
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function StatCard({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <Card className="border-primary/20">
+      <CardContent className="flex flex-col gap-1 p-3">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          {icon}
+          {label}
+        </div>
+        <p className="text-lg font-bold text-primary">{value}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function MiniRow({ label, val, meta }: { label: string; val: number; meta: number }) {
+  const ok = meta > 0 && val >= meta;
+  const diff = val - meta;
+  const fmtN = (n: number) =>
+    new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 }).format(n);
+  return (
+    <div className="flex items-center justify-between rounded-md border border-primary/10 bg-secondary/20 px-3 py-2 text-sm">
+      <span className="text-muted-foreground">{label}</span>
+      <span
+        className={`inline-flex items-center gap-1 font-semibold ${meta <= 0 ? "text-primary" : ok ? "text-emerald-400" : "text-red-400"}`}
+      >
+        {meta > 0 &&
+          (ok ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)}
+        {fmtN(val)}
+        {meta > 0 && (
+          <span className="text-xs opacity-80">
+            {" "}
+            ({diff >= 0 ? "+" : ""}
+            {fmtN(diff)})
+          </span>
         )}
-      </section>
+      </span>
     </div>
   );
 }
