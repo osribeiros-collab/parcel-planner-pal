@@ -19,7 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, Trash2, Clock } from "lucide-react";
+import { Plus, Trash2, Clock, ArrowUp, ArrowDown, FilePlus } from "lucide-react";
 import { toast } from "sonner";
 import {
   Fazenda,
@@ -56,10 +56,60 @@ const emptyDraft = (): Draft => ({
   obs: "",
 });
 
+const parseHoras = (hhmm: string): number => {
+  if (!hhmm) return 0;
+  const [h, m] = hhmm.split(":").map(Number);
+  if (isNaN(h)) return 0;
+  return h + (m || 0) / 60;
+};
+
+const parseNum = (s: string): number => {
+  if (!s) return 0;
+  const n = parseFloat(s.replace(",", "."));
+  return isNaN(n) ? 0 : n;
+};
+
+const fmt = (n: number, d = 2) =>
+  n.toLocaleString("pt-BR", { minimumFractionDigits: d, maximumFractionDigits: d });
+
+function Stat({
+  label,
+  value,
+  meta,
+  unit,
+}: {
+  label: string;
+  value: number;
+  meta: number;
+  unit: string;
+}) {
+  const ok = meta > 0 && value >= meta;
+  const cor = meta <= 0 ? "text-muted-foreground" : ok ? "text-emerald-500" : "text-red-500";
+  const Icon = ok ? ArrowUp : ArrowDown;
+  const diff = value - meta;
+  return (
+    <div className="rounded-md border border-primary/20 bg-background/50 p-2">
+      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className={`flex items-center gap-1 text-base font-bold ${cor}`}>
+        {meta > 0 && <Icon className="h-4 w-4" />}
+        {fmt(value)} <span className="text-xs font-normal">{unit}</span>
+      </div>
+      {meta > 0 && (
+        <div className="text-[10px] text-muted-foreground">
+          Meta {fmt(meta)} · {diff >= 0 ? "+" : ""}
+          {fmt(diff)}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Relatorios() {
   const [fazendas] = useLocalState<Fazenda[]>(FAZENDAS_KEY, []);
   const [relatorios, setRelatorios] = useLocalState<Relatorio[]>(RELATORIOS_KEY, []);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [viewDate, setViewDate] = useState<Date | undefined>(undefined);
+  const [novoOpen, setNovoOpen] = useState(false);
+  const [novoDate, setNovoDate] = useState<string>(toDateKey(new Date()));
   const [drafts, setDrafts] = useState<Draft[]>([emptyDraft()]);
 
   const datasComRelatorio = useMemo(() => {
@@ -70,14 +120,8 @@ function Relatorios() {
     });
   }, [relatorios]);
 
-  const dateKey = selectedDate ? toDateKey(selectedDate) : "";
-  const relatoriosDoDia = relatorios.filter((r) => r.data === dateKey);
-
-  const openDay = (d: Date | undefined) => {
-    if (!d) return;
-    setSelectedDate(d);
-    setDrafts([emptyDraft()]);
-  };
+  const viewKey = viewDate ? toDateKey(viewDate) : "";
+  const relatoriosDoDia = relatorios.filter((r) => r.data === viewKey);
 
   const updateDraft = (idx: number, patch: Partial<Draft>) =>
     setDrafts((prev) => prev.map((d, i) => (i === idx ? { ...d, ...patch } : d)));
@@ -86,19 +130,28 @@ function Relatorios() {
   const removeDraft = (idx: number) =>
     setDrafts((p) => (p.length === 1 ? p : p.filter((_, i) => i !== idx)));
 
+  const abrirNovo = () => {
+    setNovoDate(toDateKey(new Date()));
+    setDrafts([emptyDraft()]);
+    setNovoOpen(true);
+  };
+
   const salvar = () => {
-    if (!selectedDate) return;
+    if (!novoDate) {
+      toast.error("Selecione uma data");
+      return;
+    }
     const validos: Relatorio[] = [];
     for (const d of drafts) {
       if (!d.fazendaId || !d.talhaoId) {
         toast.error("Selecione fazenda e talhão em todos os relatórios");
         return;
       }
-      validos.push({ id: crypto.randomUUID(), data: dateKey, ...d });
+      validos.push({ id: crypto.randomUUID(), data: novoDate, ...d });
     }
     setRelatorios((prev) => [...prev, ...validos]);
     toast.success(`${validos.length} relatório(s) salvos`);
-    setSelectedDate(undefined);
+    setNovoOpen(false);
   };
 
   const removerRelatorio = (id: string) =>
@@ -108,6 +161,15 @@ function Relatorios() {
 
   return (
     <div className="space-y-6">
+      <Button onClick={abrirNovo} className="w-full" disabled={fazendas.length === 0}>
+        <FilePlus className="mr-2 h-4 w-4" /> Adicionar relatório
+      </Button>
+      {fazendas.length === 0 && (
+        <p className="text-xs text-destructive -mt-4">
+          Cadastre uma fazenda antes de criar relatórios.
+        </p>
+      )}
+
       <Card className="border-primary/20">
         <CardHeader>
           <CardTitle className="text-primary">Calendário de relatórios</CardTitle>
@@ -116,8 +178,8 @@ function Relatorios() {
           <Calendar
             mode="single"
             locale={ptBR}
-            selected={selectedDate}
-            onSelect={openDay}
+            selected={viewDate}
+            onSelect={(d) => d && setViewDate(d)}
             modifiers={{ hasReport: datasComRelatorio }}
             modifiersClassNames={{
               hasReport: "bg-primary/30 text-primary-foreground rounded-md font-semibold",
@@ -127,22 +189,35 @@ function Relatorios() {
         </CardContent>
       </Card>
 
-      <Dialog open={!!selectedDate} onOpenChange={(o) => !o && setSelectedDate(undefined)}>
+      {/* View existing reports */}
+      <Dialog open={!!viewDate} onOpenChange={(o) => !o && setViewDate(undefined)}>
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-primary">
-              {selectedDate?.toLocaleDateString("pt-BR")}
+              {viewDate?.toLocaleDateString("pt-BR")}
             </DialogTitle>
           </DialogHeader>
 
-          {relatoriosDoDia.length > 0 && (
-            <div className="space-y-2">
-              <h3 className="text-sm font-semibold text-primary">Relatórios do dia</h3>
+          {relatoriosDoDia.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhum relatório nesse dia.</p>
+          ) : (
+            <div className="space-y-3">
               {relatoriosDoDia.map((r) => {
                 const f = fazendaById(r.fazendaId);
                 const t = f?.talhoes.find((x) => x.id === r.talhaoId);
+                const horas = parseHoras(r.horaTrabalhando);
+                const arv = parseNum(r.arv);
+                const vmi = parseNum(t?.vmi || "0");
+                const metaArv = parseNum(t?.metaArvH || "0");
+                const metaM3 = parseNum(t?.metaM3H || "0");
+                const prod = horas > 0 ? arv / horas : 0;
+                const m3 = arv * vmi;
+                const m3h = horas > 0 ? m3 / horas : 0;
                 return (
-                  <div key={r.id} className="rounded-md border border-primary/20 bg-secondary/20 p-3 text-sm">
+                  <div
+                    key={r.id}
+                    className="space-y-3 rounded-md border border-primary/20 bg-secondary/20 p-3 text-sm"
+                  >
                     <div className="flex items-start justify-between gap-2">
                       <div className="space-y-1">
                         <div className="font-medium text-primary">
@@ -155,26 +230,59 @@ function Relatorios() {
                           Horímetro: {r.horimetroInicial || "—"} → {r.horimetroFinal || "—"}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          Trab: {r.horaTrabalhando || "—"} · Op: {r.paradaOperacional || "—"} · Mec: {r.paradaMecanica || "—"}
+                          Trab: {r.horaTrabalhando || "—"} · Op: {r.paradaOperacional || "—"} ·
+                          Mec: {r.paradaMecanica || "—"}
                         </div>
-                        {r.obs && <div className="text-xs italic text-muted-foreground">"{r.obs}"</div>}
+                        {r.obs && (
+                          <div className="text-xs italic text-muted-foreground">"{r.obs}"</div>
+                        )}
                       </div>
-                      <Button variant="ghost" size="icon" onClick={() => removerRelatorio(r.id)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removerRelatorio(r.id)}
+                      >
                         <Trash2 className="h-4 w-4" />
                       </Button>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2">
+                      <Stat label="Produtividade" value={prod} meta={metaArv} unit="árv/h" />
+                      <Stat label="m³ no dia" value={m3} meta={0} unit="m³" />
+                      <Stat label="m³/h" value={m3h} meta={metaM3} unit="m³/h" />
                     </div>
                   </div>
                 );
               })}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
 
-          <div className="space-y-3 pt-2">
-            <h3 className="text-sm font-semibold text-primary">Novo relatório</h3>
+      {/* New report */}
+      <Dialog open={novoOpen} onOpenChange={setNovoOpen}>
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-primary">Novo relatório</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Data</Label>
+              <Input
+                type="date"
+                value={novoDate}
+                onChange={(e) => setNovoDate(e.target.value)}
+              />
+            </div>
+
             {drafts.map((d, idx) => {
               const f = fazendaById(d.fazendaId);
               return (
-                <div key={idx} className="space-y-3 rounded-lg border border-primary/20 bg-secondary/10 p-3">
+                <div
+                  key={idx}
+                  className="space-y-3 rounded-lg border border-primary/20 bg-secondary/10 p-3"
+                >
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-medium text-primary">
                       {idx === 0 ? "Relatório" : `Sub-relatório ${idx}`}
@@ -191,12 +299,18 @@ function Relatorios() {
                       <Label className="text-xs">Fazenda</Label>
                       <Select
                         value={d.fazendaId}
-                        onValueChange={(v) => updateDraft(idx, { fazendaId: v, talhaoId: "" })}
+                        onValueChange={(v) =>
+                          updateDraft(idx, { fazendaId: v, talhaoId: "" })
+                        }
                       >
-                        <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
                         <SelectContent>
                           {fazendas.map((fz) => (
-                            <SelectItem key={fz.id} value={fz.id}>{fazendaLabel(fz)}</SelectItem>
+                            <SelectItem key={fz.id} value={fz.id}>
+                              {fazendaLabel(fz)}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -208,10 +322,14 @@ function Relatorios() {
                         onValueChange={(v) => updateDraft(idx, { talhaoId: v })}
                         disabled={!f}
                       >
-                        <SelectTrigger><SelectValue placeholder={f ? "Selecione" : "Escolha fazenda"} /></SelectTrigger>
+                        <SelectTrigger>
+                          <SelectValue placeholder={f ? "Selecione" : "Escolha fazenda"} />
+                        </SelectTrigger>
                         <SelectContent>
                           {f?.talhoes.map((t) => (
-                            <SelectItem key={t.id} value={t.id}>Talhão {t.numero}</SelectItem>
+                            <SelectItem key={t.id} value={t.id}>
+                              Talhão {t.numero}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -219,32 +337,72 @@ function Relatorios() {
 
                     <div className="space-y-1.5">
                       <Label className="text-xs">Horímetro inicial</Label>
-                      <Input value={d.horimetroInicial} onChange={(e) => updateDraft(idx, { horimetroInicial: e.target.value })} inputMode="decimal" placeholder="0,0" />
+                      <Input
+                        value={d.horimetroInicial}
+                        onChange={(e) => updateDraft(idx, { horimetroInicial: e.target.value })}
+                        inputMode="decimal"
+                        placeholder="0,0"
+                      />
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-xs">Horímetro final</Label>
-                      <Input value={d.horimetroFinal} onChange={(e) => updateDraft(idx, { horimetroFinal: e.target.value })} inputMode="decimal" placeholder="0,0" />
+                      <Input
+                        value={d.horimetroFinal}
+                        onChange={(e) => updateDraft(idx, { horimetroFinal: e.target.value })}
+                        inputMode="decimal"
+                        placeholder="0,0"
+                      />
                     </div>
 
                     <div className="space-y-1.5">
                       <Label className="text-xs">Árv</Label>
-                      <Input value={d.arv} onChange={(e) => updateDraft(idx, { arv: e.target.value })} inputMode="numeric" placeholder="0" />
+                      <Input
+                        value={d.arv}
+                        onChange={(e) => updateDraft(idx, { arv: e.target.value })}
+                        inputMode="numeric"
+                        placeholder="0"
+                      />
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-xs flex items-center gap-1"><Clock className="h-3 w-3" /> Hora trabalhando</Label>
-                      <Input type="time" step={60} value={d.horaTrabalhando} onChange={(e) => updateDraft(idx, { horaTrabalhando: e.target.value })} />
+                      <Label className="text-xs flex items-center gap-1">
+                        <Clock className="h-3 w-3" /> Hora trabalhando
+                      </Label>
+                      <Input
+                        type="time"
+                        step={60}
+                        value={d.horaTrabalhando}
+                        onChange={(e) => updateDraft(idx, { horaTrabalhando: e.target.value })}
+                      />
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-xs flex items-center gap-1"><Clock className="h-3 w-3" /> Parada operacional</Label>
-                      <Input type="time" step={60} value={d.paradaOperacional} onChange={(e) => updateDraft(idx, { paradaOperacional: e.target.value })} />
+                      <Label className="text-xs flex items-center gap-1">
+                        <Clock className="h-3 w-3" /> Parada operacional
+                      </Label>
+                      <Input
+                        type="time"
+                        step={60}
+                        value={d.paradaOperacional}
+                        onChange={(e) => updateDraft(idx, { paradaOperacional: e.target.value })}
+                      />
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-xs flex items-center gap-1"><Clock className="h-3 w-3" /> Parada mecânica</Label>
-                      <Input type="time" step={60} value={d.paradaMecanica} onChange={(e) => updateDraft(idx, { paradaMecanica: e.target.value })} />
+                      <Label className="text-xs flex items-center gap-1">
+                        <Clock className="h-3 w-3" /> Parada mecânica
+                      </Label>
+                      <Input
+                        type="time"
+                        step={60}
+                        value={d.paradaMecanica}
+                        onChange={(e) => updateDraft(idx, { paradaMecanica: e.target.value })}
+                      />
                     </div>
                     <div className="space-y-1.5 sm:col-span-2">
                       <Label className="text-xs">Observações</Label>
-                      <Textarea value={d.obs} onChange={(e) => updateDraft(idx, { obs: e.target.value })} rows={2} />
+                      <Textarea
+                        value={d.obs}
+                        onChange={(e) => updateDraft(idx, { obs: e.target.value })}
+                        rows={2}
+                      />
                     </div>
                   </div>
                 </div>
@@ -256,12 +414,11 @@ function Relatorios() {
             </Button>
 
             <div className="flex justify-end gap-2 pt-2">
-              <Button variant="ghost" onClick={() => setSelectedDate(undefined)}>Cancelar</Button>
-              <Button onClick={salvar} disabled={fazendas.length === 0}>Salvar</Button>
+              <Button variant="ghost" onClick={() => setNovoOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={salvar}>Salvar</Button>
             </div>
-            {fazendas.length === 0 && (
-              <p className="text-xs text-destructive">Cadastre uma fazenda antes de criar relatórios.</p>
-            )}
           </div>
         </DialogContent>
       </Dialog>
