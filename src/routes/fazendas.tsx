@@ -13,7 +13,7 @@ import {
   useLocalState,
 } from "@/lib/harvest";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/fazendas")({
   component: Index,
   head: () => ({
     meta: [

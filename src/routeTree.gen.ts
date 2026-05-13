@@ -11,7 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
 import { Route as ModulosRouteImport } from './routes/modulos'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as FazendasRouteImport } from './routes/fazendas'
 
 const RelatoriosRoute = RelatoriosRouteImport.update({
   id: '/relatorios',
@@ -23,38 +23,38 @@ const ModulosRoute = ModulosRouteImport.update({
   path: '/modulos',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const FazendasRoute = FazendasRouteImport.update({
+  id: '/fazendas',
+  path: '/fazendas',
   getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
+  '/fazendas': typeof FazendasRoute
   '/modulos': typeof ModulosRoute
   '/relatorios': typeof RelatoriosRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
+  '/fazendas': typeof FazendasRoute
   '/modulos': typeof ModulosRoute
   '/relatorios': typeof RelatoriosRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
+  '/fazendas': typeof FazendasRoute
   '/modulos': typeof ModulosRoute
   '/relatorios': typeof RelatoriosRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/modulos' | '/relatorios'
+  fullPaths: '/fazendas' | '/modulos' | '/relatorios'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/modulos' | '/relatorios'
-  id: '__root__' | '/' | '/modulos' | '/relatorios'
+  to: '/fazendas' | '/modulos' | '/relatorios'
+  id: '__root__' | '/fazendas' | '/modulos' | '/relatorios'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
+  FazendasRoute: typeof FazendasRoute
   ModulosRoute: typeof ModulosRoute
   RelatoriosRoute: typeof RelatoriosRoute
 }
@@ -75,18 +75,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ModulosRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/fazendas': {
+      id: '/fazendas'
+      path: '/fazendas'
+      fullPath: '/fazendas'
+      preLoaderRoute: typeof FazendasRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
+  FazendasRoute: FazendasRoute,
   ModulosRoute: ModulosRoute,
   RelatoriosRoute: RelatoriosRoute,
 }
