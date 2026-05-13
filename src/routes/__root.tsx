@@ -42,6 +42,14 @@ function AppShell() {
             Fazendas
           </Link>
           <Link
+            to="/modulos"
+            className="flex flex-1 flex-col items-center gap-1 py-3 text-xs text-muted-foreground transition-colors"
+            activeProps={{ className: "flex flex-1 flex-col items-center gap-1 py-3 text-xs text-primary font-semibold" }}
+          >
+            <Boxes className="h-5 w-5" />
+            Módulo
+          </Link>
+          <Link
             to="/relatorios"
             className="flex flex-1 flex-col items-center gap-1 py-3 text-xs text-muted-foreground transition-colors"
             activeProps={{ className: "flex flex-1 flex-col items-center gap-1 py-3 text-xs text-primary font-semibold" }}
