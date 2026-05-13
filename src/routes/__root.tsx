@@ -7,7 +7,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { Tractor, CalendarDays } from "lucide-react";
+import { Tractor, CalendarDays, Boxes } from "lucide-react";
 import { Toaster } from "@/components/ui/sonner";
 
 import appCss from "../styles.css?url";
@@ -40,6 +40,14 @@ function AppShell() {
           >
             <Tractor className="h-5 w-5" />
             Fazendas
+          </Link>
+          <Link
+            to="/modulos"
+            className="flex flex-1 flex-col items-center gap-1 py-3 text-xs text-muted-foreground transition-colors"
+            activeProps={{ className: "flex flex-1 flex-col items-center gap-1 py-3 text-xs text-primary font-semibold" }}
+          >
+            <Boxes className="h-5 w-5" />
+            Módulo
           </Link>
           <Link
             to="/relatorios"
