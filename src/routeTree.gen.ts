@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
 import { Route as ModulosRouteImport } from './routes/modulos'
+import { Route as MapasRouteImport } from './routes/mapas'
 import { Route as FazendasRouteImport } from './routes/fazendas'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -22,6 +23,11 @@ const RelatoriosRoute = RelatoriosRouteImport.update({
 const ModulosRoute = ModulosRouteImport.update({
   id: '/modulos',
   path: '/modulos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MapasRoute = MapasRouteImport.update({
+  id: '/mapas',
+  path: '/mapas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FazendasRoute = FazendasRouteImport.update({
@@ -38,12 +44,14 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/fazendas': typeof FazendasRoute
+  '/mapas': typeof MapasRoute
   '/modulos': typeof ModulosRoute
   '/relatorios': typeof RelatoriosRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/fazendas': typeof FazendasRoute
+  '/mapas': typeof MapasRoute
   '/modulos': typeof ModulosRoute
   '/relatorios': typeof RelatoriosRoute
 }
@@ -51,20 +59,22 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/fazendas': typeof FazendasRoute
+  '/mapas': typeof MapasRoute
   '/modulos': typeof ModulosRoute
   '/relatorios': typeof RelatoriosRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/fazendas' | '/modulos' | '/relatorios'
+  fullPaths: '/' | '/fazendas' | '/mapas' | '/modulos' | '/relatorios'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/fazendas' | '/modulos' | '/relatorios'
-  id: '__root__' | '/' | '/fazendas' | '/modulos' | '/relatorios'
+  to: '/' | '/fazendas' | '/mapas' | '/modulos' | '/relatorios'
+  id: '__root__' | '/' | '/fazendas' | '/mapas' | '/modulos' | '/relatorios'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   FazendasRoute: typeof FazendasRoute
+  MapasRoute: typeof MapasRoute
   ModulosRoute: typeof ModulosRoute
   RelatoriosRoute: typeof RelatoriosRoute
 }
@@ -83,6 +93,13 @@ declare module '@tanstack/react-router' {
       path: '/modulos'
       fullPath: '/modulos'
       preLoaderRoute: typeof ModulosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mapas': {
+      id: '/mapas'
+      path: '/mapas'
+      fullPath: '/mapas'
+      preLoaderRoute: typeof MapasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/fazendas': {
@@ -105,19 +122,10 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   FazendasRoute: FazendasRoute,
+  MapasRoute: MapasRoute,
   ModulosRoute: ModulosRoute,
   RelatoriosRoute: RelatoriosRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
