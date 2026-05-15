@@ -40,12 +40,24 @@ export const Route = createFileRoute("/modulos")({
   }),
 });
 
-const fmt = (n: number) =>
-  new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 }).format(n);
+const fmt = (n: number, d = 2) =>
+  new Intl.NumberFormat("pt-BR", { maximumFractionDigits: d }).format(n);
 
 const parseNum = (s: string) => {
   const n = Number(String(s).replace(/\./g, "").replace(",", "."));
   return Number.isFinite(n) ? n : 0;
+};
+
+const parseHoras = (hhmm: string): number => {
+  if (!hhmm) return 0;
+  const [h, m] = hhmm.split(":").map((x) => Number(x) || 0);
+  return h + m / 60;
+};
+
+const fmtHoras = (h: number) => {
+  const hh = Math.floor(h);
+  const mm = Math.round((h - hh) * 60);
+  return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
 };
 
 const mesLabel = (mes: string) => {
