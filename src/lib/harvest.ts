@@ -59,3 +59,25 @@ export const toDateKey = (d: Date) => {
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
 };
+
+// Produção começa dia 21 e termina dia 20 do mês seguinte
+export function getProductionMonthRange(ref: Date = new Date()) {
+  const y = ref.getFullYear();
+  const m = ref.getMonth();
+  const day = ref.getDate();
+  const start = day >= 21 ? new Date(y, m, 21) : new Date(y, m - 1, 21);
+  const end = new Date(start.getFullYear(), start.getMonth() + 1, 20);
+  return { start, end };
+}
+
+export function isInProductionMonth(dateStr: string, ref: Date = new Date()) {
+  const { start, end } = getProductionMonthRange(ref);
+  const k = dateStr;
+  return k >= toDateKey(start) && k <= toDateKey(end);
+}
+
+export function productionMonthLabel(ref: Date = new Date()) {
+  const { start, end } = getProductionMonthRange(ref);
+  const f = (d: Date) => d.toLocaleDateString("pt-BR");
+  return `${f(start)} — ${f(end)}`;
+}
