@@ -283,9 +283,17 @@ function MapaViewer({ mapa, onChange }: { mapa: MapaPDF; onChange: (p: Partial<M
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant={calibMode ? "default" : "outline"} onClick={() => { setCalibMode(v => !v); setPendingTap(null); }}>
+          <Button size="sm" variant={calibMode ? "default" : "outline"} onClick={() => { setCalibMode(v => !v); setAutoCalib(false); setPendingTap(null); }}>
             <Crosshair className="mr-1 h-4 w-4" /> {calibMode ? "Sair calibração" : "Calibrar"}
           </Button>
+          {calibMode && (
+            <Button size="sm" variant={autoCalib ? "default" : "outline"} onClick={() => {
+              const next = !autoCalib; setAutoCalib(next);
+              if (next && watchIdRef.current == null) startGps();
+            }}>
+              <Zap className="mr-1 h-4 w-4" /> {autoCalib ? "Auto GPS ✓" : "Auto GPS"}
+            </Button>
+          )}
           {!recording ? (
             <Button size="sm" onClick={startTrack} disabled={!calibrado}><Play className="mr-1 h-4 w-4" /> Gravar trilha</Button>
           ) : (
@@ -293,11 +301,15 @@ function MapaViewer({ mapa, onChange }: { mapa: MapaPDF; onChange: (p: Partial<M
           )}
           {!recording && (
             watchIdRef.current == null ? (
-              <Button size="sm" variant="outline" onClick={startGps} disabled={!calibrado}><MapPin className="mr-1 h-4 w-4" /> GPS</Button>
+              <Button size="sm" variant="outline" onClick={startGps}><MapPin className="mr-1 h-4 w-4" /> GPS</Button>
             ) : (
               <Button size="sm" variant="outline" onClick={stopGps}>Desligar GPS</Button>
             )
           )}
+          <Button size="sm" variant="outline" onClick={toggleFullscreen}>
+            {fullscreen ? <Minimize2 className="mr-1 h-4 w-4" /> : <Maximize2 className="mr-1 h-4 w-4" />}
+            {fullscreen ? "Sair" : "Tela cheia"}
+          </Button>
           <div className="ml-auto flex items-center gap-1">
             <Button size="sm" variant="ghost" onClick={() => setRenderScale(s => Math.max(0.5, s - 0.25))}>−</Button>
             <span className="text-xs text-muted-foreground w-10 text-center">{Math.round(renderScale * 100)}%</span>
@@ -307,19 +319,28 @@ function MapaViewer({ mapa, onChange }: { mapa: MapaPDF; onChange: (p: Partial<M
 
         {calibMode && (
           <p className="text-xs text-muted-foreground">
-            Toque no mapa em um ponto conhecido e informe a latitude/longitude. Faça isso 2x em pontos distantes.
+            {autoCalib
+              ? "Vá até um ponto reconhecível no terreno e toque nele no mapa — a coordenada será capturada do GPS automaticamente. Repita em outro ponto distante."
+              : "Toque em um ponto conhecido e informe latitude/longitude. Faça isso 2x em pontos distantes. Use 'Auto GPS' para capturar automaticamente sua posição."}
           </p>
         )}
         {gpsPos && <p className="text-xs text-muted-foreground">GPS: {gpsPos.lat.toFixed(6)}, {gpsPos.lng.toFixed(6)} (±{Math.round(gpsPos.acc)}m)</p>}
 
-        <div ref={containerRef} className="relative max-h-[70vh] overflow-auto rounded-md border border-border bg-black/40">
-          <canvas ref={canvasRef} className="block" />
-          <canvas
-            ref={overlayRef}
-            onClick={onCanvasClick}
-            className="absolute left-0 top-0"
-            style={{ cursor: calibMode ? "crosshair" : "default" }}
-          />
+        <div ref={wrapperRef} className={fullscreen ? "fixed inset-0 z-50 bg-background overflow-auto" : ""}>
+          {fullscreen && (
+            <Button size="sm" variant="outline" className="absolute right-2 top-2 z-10" onClick={toggleFullscreen}>
+              <Minimize2 className="mr-1 h-4 w-4" /> Sair
+            </Button>
+          )}
+          <div ref={containerRef} className={`relative overflow-auto rounded-md border border-border bg-black/40 ${fullscreen ? "h-full max-h-none" : "max-h-[70vh]"}`}>
+            <canvas ref={canvasRef} className="block" />
+            <canvas
+              ref={overlayRef}
+              onClick={onCanvasClick}
+              className="absolute left-0 top-0"
+              style={{ cursor: calibMode ? "crosshair" : "default" }}
+            />
+          </div>
         </div>
 
         {mapa.tracks.length > 0 && (
