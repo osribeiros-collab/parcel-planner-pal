@@ -214,8 +214,31 @@ function MapaViewer({ mapa, onChange }: { mapa: MapaPDF; onChange: (p: Partial<M
     const rect = (e.target as HTMLElement).getBoundingClientRect();
     const cx = (e.clientX - rect.left) * (overlayRef.current!.width / rect.width);
     const cy = (e.clientY - rect.top) * (overlayRef.current!.height / rect.height);
-    setPendingTap({ x: cx / renderScale, y: cy / renderScale });
+    const pt = { x: cx / renderScale, y: cy / renderScale };
+    if (autoCalib) {
+      if (!gpsPos) { toast.error("Aguardando GPS..."); return; }
+      const novo = [...mapa.calib, { ...pt, lat: gpsPos.lat, lng: gpsPos.lng }].slice(-2);
+      onChange({ calib: novo });
+      toast.success(`Ponto ${novo.length}/2 salvo via GPS (±${Math.round(gpsPos.acc)}m)`);
+      if (novo.length === 2) { setCalibMode(false); setAutoCalib(false); toast.success("Mapa calibrado!"); }
+      return;
+    }
+    setPendingTap(pt);
   }
+
+  async function toggleFullscreen() {
+    const el = wrapperRef.current;
+    if (!el) return;
+    try {
+      if (!document.fullscreenElement) { await el.requestFullscreen(); setFullscreen(true); }
+      else { await document.exitFullscreen(); setFullscreen(false); }
+    } catch (e: any) { toast.error("Tela cheia: " + e.message); }
+  }
+  useEffect(() => {
+    const h = () => setFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", h);
+    return () => document.removeEventListener("fullscreenchange", h);
+  }, []);
 
   function startGps() {
     if (!navigator.geolocation) { toast.error("GPS indisponível"); return; }
