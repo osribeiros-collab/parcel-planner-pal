@@ -211,6 +211,22 @@ function ModulosPage() {
 
   return (
     <div className="space-y-6">
+      <Card className="border-primary/20 bg-gradient-to-br from-secondary/30 to-background">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center justify-between gap-2 text-primary text-base">
+            <span className="flex items-center gap-2"><FileDown className="h-4 w-4" /> Resumo do mês</span>
+            <span className="text-[10px] font-normal text-muted-foreground">{periodoAtual}</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={gerarPDF} className="w-full">
+            <FileDown className="h-4 w-4" /> Gerar PDF do mês de produção
+          </Button>
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            O mês de produção começa dia 21 e termina dia 20. As informações ficam guardadas e o painel zera automaticamente no próximo ciclo.
+          </p>
+        </CardContent>
+      </Card>
       <Card className="border-primary/20">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-primary">
