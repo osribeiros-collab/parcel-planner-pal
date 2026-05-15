@@ -72,6 +72,35 @@ const parseNum = (s: string): number => {
 const fmt = (n: number, d = 2) =>
   n.toLocaleString("pt-BR", { minimumFractionDigits: d, maximumFractionDigits: d });
 
+const JORNADA_H = 8 + 48 / 60; // 8:48
+const fmtH = (h: number) => {
+  const hh = Math.floor(h);
+  const mm = Math.round((h - hh) * 60);
+  return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+};
+function JornadaAlert({ trab, op, mec }: { trab: string; op: string; mec: string }) {
+  const total = parseHoras(trab) + parseHoras(op) + parseHoras(mec);
+  if (total === 0) return null;
+  const diff = total - JORNADA_H;
+  if (Math.abs(diff) < 1 / 120) return null; // tolerância < 30s
+  const acima = diff > 0;
+  return (
+    <div
+      className={`flex items-center gap-2 rounded-md border px-2 py-1.5 text-xs ${
+        acima
+          ? "border-amber-500/40 bg-amber-500/10 text-amber-400"
+          : "border-red-500/40 bg-red-500/10 text-red-400"
+      }`}
+    >
+      <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+      <span>
+        Jornada {fmtH(total)} {acima ? "acima" : "abaixo"} de 08:48 ({diff >= 0 ? "+" : "−"}
+        {fmtH(Math.abs(diff))})
+      </span>
+    </div>
+  );
+}
+
 function Stat({
   label,
   value,
