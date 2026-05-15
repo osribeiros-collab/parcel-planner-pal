@@ -439,6 +439,11 @@ function Relatorios() {
                       />
                     </div>
                   </div>
+                  <JornadaAlert
+                    trab={d.horaTrabalhando}
+                    op={d.paradaOperacional}
+                    mec={d.paradaMecanica}
+                  />
                 </div>
               );
             })}
