@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Map, Upload, Crosshair, Play, Square, Trash2, MapPin } from "lucide-react";
+import { Map, Upload, Crosshair, Play, Square, Trash2, MapPin, Maximize2, Minimize2, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { listMapas, putMapa, deleteMapa, type MapaPDF } from "@/lib/mapasDB";
 
@@ -113,10 +113,13 @@ function MapaViewer({ mapa, onChange }: { mapa: MapaPDF; onChange: (p: Partial<M
   const [pdfPage, setPdfPage] = useState<any>(null);
   const [renderScale, setRenderScale] = useState(1.5);
   const [calibMode, setCalibMode] = useState(false);
+  const [autoCalib, setAutoCalib] = useState(false);
   const [pendingTap, setPendingTap] = useState<{ x: number; y: number } | null>(null);
   const [gpsPos, setGpsPos] = useState<{ lat: number; lng: number; acc: number } | null>(null);
   const [recording, setRecording] = useState<Track | null>(null);
+  const [fullscreen, setFullscreen] = useState(false);
   const watchIdRef = useRef<number | null>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -211,8 +214,31 @@ function MapaViewer({ mapa, onChange }: { mapa: MapaPDF; onChange: (p: Partial<M
     const rect = (e.target as HTMLElement).getBoundingClientRect();
     const cx = (e.clientX - rect.left) * (overlayRef.current!.width / rect.width);
     const cy = (e.clientY - rect.top) * (overlayRef.current!.height / rect.height);
-    setPendingTap({ x: cx / renderScale, y: cy / renderScale });
+    const pt = { x: cx / renderScale, y: cy / renderScale };
+    if (autoCalib) {
+      if (!gpsPos) { toast.error("Aguardando GPS..."); return; }
+      const novo = [...mapa.calib, { ...pt, lat: gpsPos.lat, lng: gpsPos.lng }].slice(-2);
+      onChange({ calib: novo });
+      toast.success(`Ponto ${novo.length}/2 salvo via GPS (±${Math.round(gpsPos.acc)}m)`);
+      if (novo.length === 2) { setCalibMode(false); setAutoCalib(false); toast.success("Mapa calibrado!"); }
+      return;
+    }
+    setPendingTap(pt);
   }
+
+  async function toggleFullscreen() {
+    const el = wrapperRef.current;
+    if (!el) return;
+    try {
+      if (!document.fullscreenElement) { await el.requestFullscreen(); setFullscreen(true); }
+      else { await document.exitFullscreen(); setFullscreen(false); }
+    } catch (e: any) { toast.error("Tela cheia: " + e.message); }
+  }
+  useEffect(() => {
+    const h = () => setFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", h);
+    return () => document.removeEventListener("fullscreenchange", h);
+  }, []);
 
   function startGps() {
     if (!navigator.geolocation) { toast.error("GPS indisponível"); return; }
@@ -257,9 +283,17 @@ function MapaViewer({ mapa, onChange }: { mapa: MapaPDF; onChange: (p: Partial<M
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant={calibMode ? "default" : "outline"} onClick={() => { setCalibMode(v => !v); setPendingTap(null); }}>
+          <Button size="sm" variant={calibMode ? "default" : "outline"} onClick={() => { setCalibMode(v => !v); setAutoCalib(false); setPendingTap(null); }}>
             <Crosshair className="mr-1 h-4 w-4" /> {calibMode ? "Sair calibração" : "Calibrar"}
           </Button>
+          {calibMode && (
+            <Button size="sm" variant={autoCalib ? "default" : "outline"} onClick={() => {
+              const next = !autoCalib; setAutoCalib(next);
+              if (next && watchIdRef.current == null) startGps();
+            }}>
+              <Zap className="mr-1 h-4 w-4" /> {autoCalib ? "Auto GPS ✓" : "Auto GPS"}
+            </Button>
+          )}
           {!recording ? (
             <Button size="sm" onClick={startTrack} disabled={!calibrado}><Play className="mr-1 h-4 w-4" /> Gravar trilha</Button>
           ) : (
@@ -267,11 +301,15 @@ function MapaViewer({ mapa, onChange }: { mapa: MapaPDF; onChange: (p: Partial<M
           )}
           {!recording && (
             watchIdRef.current == null ? (
-              <Button size="sm" variant="outline" onClick={startGps} disabled={!calibrado}><MapPin className="mr-1 h-4 w-4" /> GPS</Button>
+              <Button size="sm" variant="outline" onClick={startGps}><MapPin className="mr-1 h-4 w-4" /> GPS</Button>
             ) : (
               <Button size="sm" variant="outline" onClick={stopGps}>Desligar GPS</Button>
             )
           )}
+          <Button size="sm" variant="outline" onClick={toggleFullscreen}>
+            {fullscreen ? <Minimize2 className="mr-1 h-4 w-4" /> : <Maximize2 className="mr-1 h-4 w-4" />}
+            {fullscreen ? "Sair" : "Tela cheia"}
+          </Button>
           <div className="ml-auto flex items-center gap-1">
             <Button size="sm" variant="ghost" onClick={() => setRenderScale(s => Math.max(0.5, s - 0.25))}>−</Button>
             <span className="text-xs text-muted-foreground w-10 text-center">{Math.round(renderScale * 100)}%</span>
@@ -281,19 +319,28 @@ function MapaViewer({ mapa, onChange }: { mapa: MapaPDF; onChange: (p: Partial<M
 
         {calibMode && (
           <p className="text-xs text-muted-foreground">
-            Toque no mapa em um ponto conhecido e informe a latitude/longitude. Faça isso 2x em pontos distantes.
+            {autoCalib
+              ? "Vá até um ponto reconhecível no terreno e toque nele no mapa — a coordenada será capturada do GPS automaticamente. Repita em outro ponto distante."
+              : "Toque em um ponto conhecido e informe latitude/longitude. Faça isso 2x em pontos distantes. Use 'Auto GPS' para capturar automaticamente sua posição."}
           </p>
         )}
         {gpsPos && <p className="text-xs text-muted-foreground">GPS: {gpsPos.lat.toFixed(6)}, {gpsPos.lng.toFixed(6)} (±{Math.round(gpsPos.acc)}m)</p>}
 
-        <div ref={containerRef} className="relative max-h-[70vh] overflow-auto rounded-md border border-border bg-black/40">
-          <canvas ref={canvasRef} className="block" />
-          <canvas
-            ref={overlayRef}
-            onClick={onCanvasClick}
-            className="absolute left-0 top-0"
-            style={{ cursor: calibMode ? "crosshair" : "default" }}
-          />
+        <div ref={wrapperRef} className={fullscreen ? "fixed inset-0 z-50 bg-background overflow-auto" : ""}>
+          {fullscreen && (
+            <Button size="sm" variant="outline" className="absolute right-2 top-2 z-10" onClick={toggleFullscreen}>
+              <Minimize2 className="mr-1 h-4 w-4" /> Sair
+            </Button>
+          )}
+          <div ref={containerRef} className={`relative overflow-auto rounded-md border border-border bg-black/40 ${fullscreen ? "h-full max-h-none" : "max-h-[70vh]"}`}>
+            <canvas ref={canvasRef} className="block" />
+            <canvas
+              ref={overlayRef}
+              onClick={onCanvasClick}
+              className="absolute left-0 top-0"
+              style={{ cursor: calibMode ? "crosshair" : "default" }}
+            />
+          </div>
         </div>
 
         {mapa.tracks.length > 0 && (
