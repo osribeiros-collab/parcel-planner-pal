@@ -275,6 +275,11 @@ function Relatorios() {
                       </Button>
                     </div>
 
+                    <JornadaAlert
+                      trab={r.horaTrabalhando}
+                      op={r.paradaOperacional}
+                      mec={r.paradaMecanica}
+                    />
                     <div className="grid grid-cols-3 gap-2">
                       <Stat label="Produtividade" value={prod} meta={metaArv} unit="árv/h" />
                       <Stat label="m³ no dia" value={m3} meta={0} unit="m³" />
