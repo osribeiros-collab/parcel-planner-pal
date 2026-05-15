@@ -148,8 +148,9 @@ function Dashboard() {
     <div className="space-y-6">
       <Card className="border-primary/20 bg-gradient-to-br from-secondary/30 to-background">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-primary">
-            <Boxes className="h-5 w-5" /> Meta pessoal (m³)
+          <CardTitle className="flex items-center justify-between gap-2 text-primary">
+            <span className="flex items-center gap-2"><Boxes className="h-5 w-5" /> Meta pessoal (m³)</span>
+            <span className="text-[10px] font-normal text-muted-foreground">{periodoLabel}</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
