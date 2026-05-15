@@ -113,10 +113,13 @@ function MapaViewer({ mapa, onChange }: { mapa: MapaPDF; onChange: (p: Partial<M
   const [pdfPage, setPdfPage] = useState<any>(null);
   const [renderScale, setRenderScale] = useState(1.5);
   const [calibMode, setCalibMode] = useState(false);
+  const [autoCalib, setAutoCalib] = useState(false);
   const [pendingTap, setPendingTap] = useState<{ x: number; y: number } | null>(null);
   const [gpsPos, setGpsPos] = useState<{ lat: number; lng: number; acc: number } | null>(null);
   const [recording, setRecording] = useState<Track | null>(null);
+  const [fullscreen, setFullscreen] = useState(false);
   const watchIdRef = useRef<number | null>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let cancelled = false;
