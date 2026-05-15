@@ -71,6 +71,8 @@ function Dashboard() {
   const [relatorios] = useLocalState<Relatorio[]>(RELATORIOS_KEY, []);
   const [modulos] = useLocalState<Modulo[]>(MODULOS_KEY, []);
 
+  const periodoLabel = productionMonthLabel();
+
   const data = useMemo(() => {
     let arv = 0;
     let trabalho = 0;
@@ -82,6 +84,7 @@ function Dashboard() {
     let count = 0;
 
     for (const r of relatorios) {
+      if (!isInProductionMonth(r.data)) continue;
       const f = fazendas.find((x) => x.id === r.fazendaId);
       const t = f?.talhoes.find((x) => x.id === r.talhaoId);
       const a = parseNum(r.arv);
