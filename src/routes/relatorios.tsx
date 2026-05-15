@@ -19,7 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, Trash2, Clock, ArrowUp, ArrowDown, FilePlus } from "lucide-react";
+import { Plus, Trash2, Clock, ArrowUp, ArrowDown, FilePlus, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import {
   Fazenda,
@@ -71,6 +71,35 @@ const parseNum = (s: string): number => {
 
 const fmt = (n: number, d = 2) =>
   n.toLocaleString("pt-BR", { minimumFractionDigits: d, maximumFractionDigits: d });
+
+const JORNADA_H = 8 + 48 / 60; // 8:48
+const fmtH = (h: number) => {
+  const hh = Math.floor(h);
+  const mm = Math.round((h - hh) * 60);
+  return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+};
+function JornadaAlert({ trab, op, mec }: { trab: string; op: string; mec: string }) {
+  const total = parseHoras(trab) + parseHoras(op) + parseHoras(mec);
+  if (total === 0) return null;
+  const diff = total - JORNADA_H;
+  if (Math.abs(diff) < 1 / 120) return null; // tolerância < 30s
+  const acima = diff > 0;
+  return (
+    <div
+      className={`flex items-center gap-2 rounded-md border px-2 py-1.5 text-xs ${
+        acima
+          ? "border-amber-500/40 bg-amber-500/10 text-amber-400"
+          : "border-red-500/40 bg-red-500/10 text-red-400"
+      }`}
+    >
+      <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+      <span>
+        Jornada {fmtH(total)} {acima ? "acima" : "abaixo"} de 08:48 ({diff >= 0 ? "+" : "−"}
+        {fmtH(Math.abs(diff))})
+      </span>
+    </div>
+  );
+}
 
 function Stat({
   label,
@@ -246,6 +275,11 @@ function Relatorios() {
                       </Button>
                     </div>
 
+                    <JornadaAlert
+                      trab={r.horaTrabalhando}
+                      op={r.paradaOperacional}
+                      mec={r.paradaMecanica}
+                    />
                     <div className="grid grid-cols-3 gap-2">
                       <Stat label="Produtividade" value={prod} meta={metaArv} unit="árv/h" />
                       <Stat label="m³ no dia" value={m3} meta={0} unit="m³" />
@@ -405,6 +439,11 @@ function Relatorios() {
                       />
                     </div>
                   </div>
+                  <JornadaAlert
+                    trab={d.horaTrabalhando}
+                    op={d.paradaOperacional}
+                    mec={d.paradaMecanica}
+                  />
                 </div>
               );
             })}

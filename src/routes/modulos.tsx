@@ -4,9 +4,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash2, Plus, Boxes, Target, Users, Cog } from "lucide-react";
+import { Trash2, Plus, Boxes, Target, Users, Cog, FileDown } from "lucide-react";
 import { toast } from "sonner";
-import { useLocalState } from "@/lib/harvest";
+import {
+  useLocalState,
+  Fazenda,
+  Relatorio,
+  FAZENDAS_KEY,
+  RELATORIOS_KEY,
+  isInProductionMonth,
+  getProductionMonthRange,
+  productionMonthLabel,
+} from "@/lib/harvest";
+import jsPDF from "jspdf";
 
 export type Modulo = {
   id: string;
@@ -30,12 +40,24 @@ export const Route = createFileRoute("/modulos")({
   }),
 });
 
-const fmt = (n: number) =>
-  new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 }).format(n);
+const fmt = (n: number, d = 2) =>
+  new Intl.NumberFormat("pt-BR", { maximumFractionDigits: d }).format(n);
 
 const parseNum = (s: string) => {
   const n = Number(String(s).replace(/\./g, "").replace(",", "."));
   return Number.isFinite(n) ? n : 0;
+};
+
+const parseHoras = (hhmm: string): number => {
+  if (!hhmm) return 0;
+  const [h, m] = hhmm.split(":").map((x) => Number(x) || 0);
+  return h + m / 60;
+};
+
+const fmtHoras = (h: number) => {
+  const hh = Math.floor(h);
+  const mm = Math.round((h - hh) * 60);
+  return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
 };
 
 const mesLabel = (mes: string) => {
@@ -47,6 +69,104 @@ const mesLabel = (mes: string) => {
 
 function ModulosPage() {
   const [modulos, setModulos] = useLocalState<Modulo[]>(MODULOS_KEY, []);
+  const [fazendas] = useLocalState<Fazenda[]>(FAZENDAS_KEY, []);
+  const [relatorios] = useLocalState<Relatorio[]>(RELATORIOS_KEY, []);
+
+  const gerarPDF = () => {
+    const ref = new Date();
+    const { start, end } = getProductionMonthRange(ref);
+    const periodo = productionMonthLabel(ref);
+    const rels = relatorios.filter((r) => isInProductionMonth(r.data, ref));
+
+    let arv = 0, trab = 0, op = 0, mec = 0, m3 = 0;
+    for (const r of rels) {
+      const f = fazendas.find((x) => x.id === r.fazendaId);
+      const t = f?.talhoes.find((x) => x.id === r.talhaoId);
+      const a = parseNum(r.arv);
+      arv += a;
+      m3 += a * parseNum(t?.vmi || "0");
+      trab += parseHoras(r.horaTrabalhando);
+      op += parseHoras(r.paradaOperacional);
+      mec += parseHoras(r.paradaMecanica);
+    }
+    const m3h = trab > 0 ? m3 / trab : 0;
+    const arvh = trab > 0 ? arv / trab : 0;
+    const mod = modulos.find((m) => {
+      const ms = m.dataInicial; const me = m.dataFinal;
+      if (!ms || !me) return false;
+      const sk = `${start.getFullYear()}-${String(start.getMonth()+1).padStart(2,"0")}-${String(start.getDate()).padStart(2,"0")}`;
+      return ms <= sk && me >= sk;
+    }) || modulos[0];
+    const metaPessoal = mod
+      ? parseNum(mod.metaTotal) /
+        Math.max(1, parseNum(mod.qtdMaquinas)) /
+        Math.max(1, parseNum(mod.qtdOperadoresPorMaquina))
+      : 0;
+    const pct = metaPessoal > 0 ? (m3 / metaPessoal) * 100 : 0;
+
+    const doc = new jsPDF();
+    let y = 18;
+    doc.setFontSize(16);
+    doc.text("Resumo do Mês de Produção", 14, y); y += 7;
+    doc.setFontSize(10);
+    doc.text(`Período: ${periodo}`, 14, y); y += 6;
+    doc.text(`Relatórios: ${rels.length}`, 14, y); y += 8;
+
+    doc.setFontSize(12);
+    doc.text("Totais", 14, y); y += 6;
+    doc.setFontSize(10);
+    const linhas = [
+      ["Árvores", fmt(arv)],
+      ["Volume (m³)", `${fmt(m3)} m³`],
+      ["Hora trabalhando", fmtHoras(trab)],
+      ["Parada operacional", fmtHoras(op)],
+      ["Parada mecânica", fmtHoras(mec)],
+      ["Produtividade", `${fmt(arvh)} árv/h`],
+      ["m³/h", `${fmt(m3h)} m³/h`],
+    ];
+    for (const [k, v] of linhas) {
+      doc.text(`${k}:`, 16, y);
+      doc.text(v, 90, y);
+      y += 6;
+    }
+    y += 4;
+    doc.setFontSize(12);
+    doc.text("Meta pessoal", 14, y); y += 6;
+    doc.setFontSize(10);
+    if (mod) {
+      doc.text(`Meta: ${fmt(metaPessoal)} m³`, 16, y); y += 6;
+      doc.text(`Realizado: ${fmt(m3)} m³ (${fmt(pct, 1)}%)`, 16, y); y += 8;
+    } else {
+      doc.text("Nenhum módulo cadastrado para o período.", 16, y); y += 8;
+    }
+
+    doc.setFontSize(12);
+    doc.text("Relatórios do período", 14, y); y += 6;
+    doc.setFontSize(9);
+    if (rels.length === 0) {
+      doc.text("Sem relatórios.", 16, y);
+    } else {
+      const sorted = [...rels].sort((a, b) => a.data.localeCompare(b.data));
+      for (const r of sorted) {
+        if (y > 280) { doc.addPage(); y = 18; }
+        const f = fazendas.find((x) => x.id === r.fazendaId);
+        const t = f?.talhoes.find((x) => x.id === r.talhaoId);
+        const a = parseNum(r.arv);
+        const v = a * parseNum(t?.vmi || "0");
+        const dataBR = r.data.split("-").reverse().join("/");
+        doc.text(
+          `${dataBR}  ${f?.codigo ?? "?"} T${t?.numero ?? "?"}  Árv ${a}  ${fmt(v)}m³  Tr ${r.horaTrabalhando||"-"} Op ${r.paradaOperacional||"-"} Mec ${r.paradaMecanica||"-"}`,
+          16, y,
+        );
+        y += 5;
+      }
+    }
+
+    doc.save(`harvest-${periodo.replace(/\//g, "-").replace(/ /g, "")}.pdf`);
+    toast.success("PDF gerado.");
+  };
+
+  const periodoAtual = productionMonthLabel();
   const [draft, setDraft] = useState<Omit<Modulo, "id">>({
     mesReferencia: "",
     dataInicial: "",
@@ -91,6 +211,22 @@ function ModulosPage() {
 
   return (
     <div className="space-y-6">
+      <Card className="border-primary/20 bg-gradient-to-br from-secondary/30 to-background">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center justify-between gap-2 text-primary text-base">
+            <span className="flex items-center gap-2"><FileDown className="h-4 w-4" /> Resumo do mês</span>
+            <span className="text-[10px] font-normal text-muted-foreground">{periodoAtual}</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={gerarPDF} className="w-full">
+            <FileDown className="h-4 w-4" /> Gerar PDF do mês de produção
+          </Button>
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            O mês de produção começa dia 21 e termina dia 20. As informações ficam guardadas e o painel zera automaticamente no próximo ciclo.
+          </p>
+        </CardContent>
+      </Card>
       <Card className="border-primary/20">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-primary">

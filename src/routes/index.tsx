@@ -18,6 +18,8 @@ import {
   FAZENDAS_KEY,
   RELATORIOS_KEY,
   useLocalState,
+  isInProductionMonth,
+  productionMonthLabel,
 } from "@/lib/harvest";
 import type { Modulo } from "./modulos";
 import {
@@ -69,6 +71,8 @@ function Dashboard() {
   const [relatorios] = useLocalState<Relatorio[]>(RELATORIOS_KEY, []);
   const [modulos] = useLocalState<Modulo[]>(MODULOS_KEY, []);
 
+  const periodoLabel = productionMonthLabel();
+
   const data = useMemo(() => {
     let arv = 0;
     let trabalho = 0;
@@ -80,6 +84,7 @@ function Dashboard() {
     let count = 0;
 
     for (const r of relatorios) {
+      if (!isInProductionMonth(r.data)) continue;
       const f = fazendas.find((x) => x.id === r.fazendaId);
       const t = f?.talhoes.find((x) => x.id === r.talhaoId);
       const a = parseNum(r.arv);
@@ -143,8 +148,9 @@ function Dashboard() {
     <div className="space-y-6">
       <Card className="border-primary/20 bg-gradient-to-br from-secondary/30 to-background">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-primary">
-            <Boxes className="h-5 w-5" /> Meta pessoal (m³)
+          <CardTitle className="flex items-center justify-between gap-2 text-primary">
+            <span className="flex items-center gap-2"><Boxes className="h-5 w-5" /> Meta pessoal (m³)</span>
+            <span className="text-[10px] font-normal text-muted-foreground">{periodoLabel}</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
