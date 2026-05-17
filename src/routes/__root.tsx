@@ -7,26 +7,31 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { Tractor, CalendarDays, Boxes, LayoutDashboard, Map as MapIcon } from "lucide-react";
+import { CalendarDays, Boxes, LayoutDashboard, Map as MapIcon, TreePine } from "lucide-react";
 import { Toaster } from "@/components/ui/sonner";
 
 import appCss from "../styles.css?url";
 import { useEffect } from "react";
 import { registerOfflineSW } from "@/lib/registerSW";
+import { SplashScreen } from "@/components/SplashScreen";
+import { ThemePicker } from "@/components/ThemePicker";
+import { loadTheme } from "@/lib/theme";
 
 function AppShell() {
   return (
     <div className="min-h-screen bg-background pb-20">
+      <SplashScreen />
       <Toaster richColors position="top-right" />
       <header className="border-b border-primary/20 bg-gradient-to-r from-background via-secondary/40 to-background">
         <div className="mx-auto flex max-w-5xl items-center gap-3 px-6 py-5">
-          <div className="flex h-11 w-11 items-center justify-center rounded-md bg-gradient-to-br from-primary to-primary/60 text-primary-foreground shadow-[0_0_20px_-4px_oklch(0.78_0.15_85/0.6)]">
-            <Tractor className="h-6 w-6" />
+          <div className="flex h-11 w-11 items-center justify-center rounded-md bg-gradient-to-br from-primary to-primary/60 text-primary-foreground shadow-[0_0_20px_-4px_var(--primary)]">
+            <TreePine className="h-6 w-6" />
           </div>
-          <div>
-            <h1 className="text-lg font-semibold tracking-tight text-primary">Controle de Produção — Harvest</h1>
-            <p className="text-sm text-muted-foreground">Fazendas, talhões e relatórios diários</p>
+          <div className="flex-1">
+            <h1 className="text-lg font-semibold tracking-tight text-primary">Ribeiro</h1>
+            <p className="text-sm text-muted-foreground">Controle de Produção</p>
           </div>
+          <ThemePicker />
         </div>
       </header>
       <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
@@ -48,7 +53,7 @@ function AppShell() {
             className="flex flex-1 flex-col items-center gap-1 py-3 text-xs text-muted-foreground transition-colors"
             activeProps={{ className: "flex flex-1 flex-col items-center gap-1 py-3 text-xs text-primary font-semibold" }}
           >
-            <Tractor className="h-5 w-5" />
+            <TreePine className="h-5 w-5" />
             Fazendas
           </Link>
           <Link
@@ -178,7 +183,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  useEffect(() => { registerOfflineSW(); }, []);
+  useEffect(() => { loadTheme(); registerOfflineSW(); }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
