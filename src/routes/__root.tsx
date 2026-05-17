@@ -7,12 +7,15 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { Tractor, CalendarDays, Boxes, LayoutDashboard, Map as MapIcon } from "lucide-react";
+import { CalendarDays, Boxes, LayoutDashboard, Map as MapIcon, TreePine } from "lucide-react";
 import { Toaster } from "@/components/ui/sonner";
 
 import appCss from "../styles.css?url";
 import { useEffect } from "react";
 import { registerOfflineSW } from "@/lib/registerSW";
+import { SplashScreen } from "@/components/SplashScreen";
+import { ThemePicker } from "@/components/ThemePicker";
+import { loadTheme } from "@/lib/theme";
 
 function AppShell() {
   return (
