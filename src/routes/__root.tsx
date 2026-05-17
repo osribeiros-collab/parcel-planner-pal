@@ -53,7 +53,7 @@ function AppShell() {
             className="flex flex-1 flex-col items-center gap-1 py-3 text-xs text-muted-foreground transition-colors"
             activeProps={{ className: "flex flex-1 flex-col items-center gap-1 py-3 text-xs text-primary font-semibold" }}
           >
-            <Tractor className="h-5 w-5" />
+            <TreePine className="h-5 w-5" />
             Fazendas
           </Link>
           <Link
