@@ -20,16 +20,18 @@ import { loadTheme } from "@/lib/theme";
 function AppShell() {
   return (
     <div className="min-h-screen bg-background pb-20">
+      <SplashScreen />
       <Toaster richColors position="top-right" />
       <header className="border-b border-primary/20 bg-gradient-to-r from-background via-secondary/40 to-background">
         <div className="mx-auto flex max-w-5xl items-center gap-3 px-6 py-5">
-          <div className="flex h-11 w-11 items-center justify-center rounded-md bg-gradient-to-br from-primary to-primary/60 text-primary-foreground shadow-[0_0_20px_-4px_oklch(0.78_0.15_85/0.6)]">
-            <Tractor className="h-6 w-6" />
+          <div className="flex h-11 w-11 items-center justify-center rounded-md bg-gradient-to-br from-primary to-primary/60 text-primary-foreground shadow-[0_0_20px_-4px_var(--primary)]">
+            <TreePine className="h-6 w-6" />
           </div>
-          <div>
-            <h1 className="text-lg font-semibold tracking-tight text-primary">Controle de Produção — Harvest</h1>
-            <p className="text-sm text-muted-foreground">Fazendas, talhões e relatórios diários</p>
+          <div className="flex-1">
+            <h1 className="text-lg font-semibold tracking-tight text-primary">Ribeiro</h1>
+            <p className="text-sm text-muted-foreground">Controle de Produção</p>
           </div>
+          <ThemePicker />
         </div>
       </header>
       <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
