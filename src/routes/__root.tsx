@@ -183,7 +183,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  useEffect(() => { registerOfflineSW(); }, []);
+  useEffect(() => { loadTheme(); registerOfflineSW(); }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
