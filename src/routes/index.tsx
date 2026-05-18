@@ -220,6 +220,29 @@ function Dashboard() {
         />
       </div>
 
+      <Card className="border-primary/20 bg-gradient-to-br from-secondary/20 to-background">
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between text-primary">
+            <span>Eficiência de Produção</span>
+            <span className="text-[10px] font-normal text-muted-foreground">
+              {data.talhoesCount} talhão(ões)
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-end justify-between gap-3">
+            <div>
+              <p className="text-3xl font-bold text-primary">{fmt(data.eficiencia, 1)}%</p>
+              <p className="text-xs text-muted-foreground">
+                Real {fmt(data.m3h)} m³/h ÷ Meta {fmt(data.metaM3Hmed)} m³/h
+              </p>
+            </div>
+            {trend(data.eficiencia, 100)}
+          </div>
+          <Progress value={Math.min(100, data.eficiencia)} />
+        </CardContent>
+      </Card>
+
       <Card className="border-primary/20">
         <CardHeader>
           <CardTitle className="text-primary">Produtividade x Meta</CardTitle>
