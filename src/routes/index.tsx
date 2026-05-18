@@ -79,9 +79,7 @@ function Dashboard() {
     let opStop = 0;
     let mecStop = 0;
     let m3Total = 0;
-    let metaArvHsoma = 0;
-    let metaM3Hsoma = 0;
-    let count = 0;
+    const talhoesUsados = new Set<string>();
 
     for (const r of relatorios) {
       if (!isInProductionMonth(r.data)) continue;
@@ -95,19 +93,38 @@ function Dashboard() {
       mecStop += parseHoras(r.paradaMecanica);
       const vmi = parseNum(t?.vmi || "0");
       m3Total += a * vmi;
+      if (t) talhoesUsados.add(`${r.fazendaId}:${r.talhaoId}`);
+    }
+
+    // Soma das metas dos talhões trabalhados no mês (únicos)
+    let metaArvHsoma = 0;
+    let metaM3Hsoma = 0;
+    for (const key of talhoesUsados) {
+      const [fid, tid] = key.split(":");
+      const t = fazendas.find((x) => x.id === fid)?.talhoes.find((x) => x.id === tid);
       if (t) {
         metaArvHsoma += parseNum(t.metaArvH);
         metaM3Hsoma += parseNum(t.metaM3H);
-        count += 1;
       }
     }
 
     const prod = trabalho > 0 ? arv / trabalho : 0;
     const m3h = trabalho > 0 ? m3Total / trabalho : 0;
-    const metaArvHmed = count > 0 ? metaArvHsoma / count : 0;
-    const metaM3Hmed = count > 0 ? metaM3Hsoma / count : 0;
+    const eficiencia = metaM3Hsoma > 0 ? (m3h / metaM3Hsoma) * 100 : 0;
 
-    return { arv, trabalho, opStop, mecStop, m3Total, prod, m3h, metaArvHmed, metaM3Hmed };
+    return {
+      arv,
+      trabalho,
+      opStop,
+      mecStop,
+      m3Total,
+      prod,
+      m3h,
+      metaArvHmed: metaArvHsoma,
+      metaM3Hmed: metaM3Hsoma,
+      eficiencia,
+      talhoesCount: talhoesUsados.size,
+    };
   }, [relatorios, fazendas]);
 
   const moduloAtivo = modulos[0];
