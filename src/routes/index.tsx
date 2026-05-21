@@ -110,7 +110,9 @@ function Dashboard() {
 
     const prod = trabalho > 0 ? arv / trabalho : 0;
     const m3h = trabalho > 0 ? m3Total / trabalho : 0;
-    const eficiencia = metaM3Hsoma > 0 ? (m3h / metaM3Hsoma) * 100 : 0;
+    const eficiencia = metaM3Hsoma > 0 ? (m3h / (metaM3Hsoma / talhoesUsados.size)) * 100 : 0;
+
+
 
     return {
       arv,
@@ -120,8 +122,8 @@ function Dashboard() {
       m3Total,
       prod,
       m3h,
-      metaArvHmed: metaArvHsoma,
-      metaM3Hmed: metaM3Hsoma,
+      metaArvHmed: metaArvHsoma / talhoesUsados.size,
+      metaM3Hmed: metaM3Hsoma / talhoesUsados.size,
       eficiencia,
       talhoesCount: talhoesUsados.size,
     };
