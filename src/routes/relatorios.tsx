@@ -116,6 +116,7 @@ function Stat({
   const cor = meta <= 0 ? "text-muted-foreground" : ok ? "text-emerald-500" : "text-red-500";
   const Icon = ok ? ArrowUp : ArrowDown;
   const diff = value - meta;
+  const pct = meta > 0 ? (value / meta) * 100 : 0;
   return (
     <div className="rounded-md border border-primary/20 bg-background/50 p-2">
       <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
@@ -125,8 +126,7 @@ function Stat({
       </div>
       {meta > 0 && (
         <div className="text-[10px] text-muted-foreground">
-          Meta {fmt(meta)} · {diff >= 0 ? "+" : ""}
-          {fmt(diff)}
+          Meta {fmt(meta)} · {diff >= 0 ? "+" : ""}{fmt(diff)} ({fmt(pct)}%)
         </div>
       )}
     </div>
