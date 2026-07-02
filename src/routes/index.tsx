@@ -11,6 +11,7 @@ import {
   ArrowUp,
   ArrowDown,
   Boxes,
+  Percent,
 } from "lucide-react";
 import {
   Fazenda,
@@ -111,6 +112,7 @@ function Dashboard() {
     const prod = trabalho > 0 ? arv / trabalho : 0;
     const m3h = trabalho > 0 ? m3Total / trabalho : 0;
     const eficiencia = metaM3Hsoma > 0 ? (m3h / (metaM3Hsoma / talhoesUsados.size)) * 100 : 0;
+    const eo = (trabalho + opStop) > 0 ? (trabalho / (trabalho + opStop)) * 100 : 0;
 
 
 
@@ -125,6 +127,7 @@ function Dashboard() {
       metaArvHmed: metaArvHsoma / talhoesUsados.size,
       metaM3Hmed: metaM3Hsoma / talhoesUsados.size,
       eficiencia,
+      eo,
       talhoesCount: talhoesUsados.size,
     };
   }, [relatorios, fazendas]);
@@ -220,6 +223,11 @@ function Dashboard() {
           label="Parada mec."
           value={fmtH(data.mecStop)}
         />
+        <StatCard
+          icon={<Percent className="h-4 w-4" />}
+          label="E.O."
+          value={`${fmt(data.eo, 1)}%`}
+        />
       </div>
 
       <Card className="border-primary/20 bg-gradient-to-br from-secondary/20 to-background">
@@ -257,11 +265,34 @@ function Dashboard() {
                 <XAxis dataKey="name" stroke="oklch(0.78 0.15 85)" />
                 <YAxis stroke="oklch(0.78 0.15 85)" />
                 <Tooltip
-                  contentStyle={{
-                    background: "oklch(0.16 0.02 85)",
-                    border: "1px solid oklch(0.78 0.15 85 / 0.4)",
-                    borderRadius: 8,
-                    color: "oklch(0.98 0 0)",
+                  content={({ active, payload, label }: any) => {
+                    if (!active || !payload || payload.length === 0) return null;
+                    const metaVal = payload.find((p: any) => p.dataKey === "Meta")?.value ?? 0;
+                    const prodVal = payload.find((p: any) => p.dataKey === "Produzido")?.value ?? 0;
+                    const pct = metaVal > 0 ? (prodVal / metaVal) * 100 : 0;
+                    return (
+                      <div
+                        style={{
+                          background: "oklch(0.16 0.02 85)",
+                          border: "1px solid oklch(0.78 0.15 85 / 0.4)",
+                          borderRadius: 8,
+                          padding: "8px 12px",
+                          color: "oklch(0.98 0 0)",
+                        }}
+                      >
+                        <div style={{ fontWeight: 600, marginBottom: 4 }}>{label}</div>
+                        {payload.map((p: any, i: number) => (
+                          <div key={i} style={{ color: p.color, fontSize: 12 }}>
+                            {p.name}: {fmt(p.value)}
+                          </div>
+                        ))}
+                        {metaVal > 0 && (
+                          <div style={{ marginTop: 4, fontSize: 12, color: "oklch(0.78 0.15 85)" }}>
+                            Eficiência: {fmt(pct, 1)}%
+                          </div>
+                        )}
+                      </div>
+                    );
                   }}
                 />
                 <Legend />
