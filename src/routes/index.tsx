@@ -81,6 +81,10 @@ function Dashboard() {
     let mecStop = 0;
     let m3Total = 0;
     const talhoesUsados = new Set<string>();
+    const byDay = new Map<
+      string,
+      { arv: number; ht: number; m3: number; metaArvHsum: number; metaM3Hsum: number; metaCount: number }
+    >();
 
     for (const r of relatorios) {
       if (!isInProductionMonth(r.data)) continue;
@@ -88,13 +92,33 @@ function Dashboard() {
       const t = f?.talhoes.find((x) => x.id === r.talhaoId);
       const a = parseNum(r.arv);
       const ht = parseHoras(r.horaTrabalhando);
+      const vmi = parseNum(t?.vmi || "0");
+      const metaArvH = parseNum(t?.metaArvH || "0");
+      const metaM3H = parseNum(t?.metaM3H || "0");
       arv += a;
       trabalho += ht;
       opStop += parseHoras(r.paradaOperacional);
       mecStop += parseHoras(r.paradaMecanica);
-      const vmi = parseNum(t?.vmi || "0");
       m3Total += a * vmi;
       if (t) talhoesUsados.add(`${r.fazendaId}:${r.talhaoId}`);
+
+      const d = byDay.get(r.data) || {
+        arv: 0,
+        ht: 0,
+        m3: 0,
+        metaArvHsum: 0,
+        metaM3Hsum: 0,
+        metaCount: 0,
+      };
+      d.arv += a;
+      d.ht += ht;
+      d.m3 += a * vmi;
+      if (metaArvH > 0 || metaM3H > 0) {
+        d.metaArvHsum += metaArvH;
+        d.metaM3Hsum += metaM3H;
+        d.metaCount += 1;
+      }
+      byDay.set(r.data, d);
     }
 
     // Soma das metas dos talhões trabalhados no mês (únicos)
@@ -114,7 +138,18 @@ function Dashboard() {
     const eficiencia = metaM3Hsoma > 0 ? (m3h / (metaM3Hsoma / talhoesUsados.size)) * 100 : 0;
     const eo = (trabalho + opStop) > 0 ? (trabalho / (trabalho + opStop)) * 100 : 0;
 
-
+    const diario = Array.from(byDay.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, v]) => {
+        const [, mm, dd] = date.split("-");
+        return {
+          name: `${dd}/${mm}`,
+          "Arv/h": v.ht > 0 ? Number((v.arv / v.ht).toFixed(2)) : 0,
+          "m³/h": v.ht > 0 ? Number((v.m3 / v.ht).toFixed(2)) : 0,
+          "Meta Arv/h": v.metaCount > 0 ? Number((v.metaArvHsum / v.metaCount).toFixed(2)) : 0,
+          "Meta m³/h": v.metaCount > 0 ? Number((v.metaM3Hsum / v.metaCount).toFixed(2)) : 0,
+        };
+      });
 
     return {
       arv,
@@ -124,13 +159,15 @@ function Dashboard() {
       m3Total,
       prod,
       m3h,
-      metaArvHmed: metaArvHsoma / talhoesUsados.size,
-      metaM3Hmed: metaM3Hsoma / talhoesUsados.size,
+      metaArvHmed: metaArvHsoma / Math.max(1, talhoesUsados.size),
+      metaM3Hmed: metaM3Hsoma / Math.max(1, talhoesUsados.size),
       eficiencia,
       eo,
       talhoesCount: talhoesUsados.size,
+      diario,
     };
   }, [relatorios, fazendas]);
+
 
   const moduloAtivo = modulos[0];
   const metaPessoal = moduloAtivo
