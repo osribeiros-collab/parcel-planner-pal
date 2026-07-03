@@ -316,11 +316,43 @@ function Dashboard() {
                   <XAxis dataKey="name" stroke="oklch(0.78 0.15 85)" />
                   <YAxis stroke="oklch(0.78 0.15 85)" />
                   <Tooltip
-                    contentStyle={{
-                      background: "oklch(0.16 0.02 85)",
-                      border: "1px solid oklch(0.78 0.15 85 / 0.4)",
-                      borderRadius: 8,
-                      color: "oklch(0.98 0 0)",
+                    content={({ active, payload, label }: any) => {
+                      if (!active || !payload || payload.length === 0) return null;
+
+                      const getVal = (key: string) =>
+                        payload.find((p: any) => p.dataKey === key)?.value ?? 0;
+
+                      const arvMeta = getVal("Meta Arv/h");
+                      const arvProd = getVal("Arv/h");
+                      const m3Meta = getVal("Meta m³/h");
+                      const m3Prod = getVal("m³/h");
+                      const pctArv = arvMeta > 0 ? (arvProd / arvMeta) * 100 : 0;
+                      const pctM3 = m3Meta > 0 ? (m3Prod / m3Meta) * 100 : 0;
+
+                      return (
+                        <div
+                          style={{
+                            background: "oklch(0.16 0.02 85)",
+                            border: "1px solid oklch(0.78 0.15 85 / 0.4)",
+                            borderRadius: 8,
+                            padding: "8px 12px",
+                            color: "oklch(0.98 0 0)",
+                          }}
+                        >
+                          <div style={{ fontWeight: 600, marginBottom: 4 }}>{label}</div>
+                          {payload.map((p: any, i: number) => (
+                            <div key={i} style={{ color: p.color, fontSize: 12 }}>
+                              {p.name}: {fmt(p.value)}
+                            </div>
+                          ))}
+                          {(arvMeta > 0 || m3Meta > 0) && (
+                            <div style={{ marginTop: 4, fontSize: 12, color: "oklch(0.78 0.15 85)" }}>
+                              {arvMeta > 0 && <>Arv/h: {fmt(pctArv, 1)}% </>}
+                              {m3Meta > 0 && <>m³/h: {fmt(pctM3, 1)}%</>}
+                            </div>
+                          )}
+                        </div>
+                      );
                     }}
                   />
                   <Legend />
