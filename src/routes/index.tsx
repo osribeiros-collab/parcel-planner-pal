@@ -355,6 +355,51 @@ function Dashboard() {
           </div>
         </CardContent>
       </Card>
+
+      <Card className="border-primary/20">
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between text-primary">
+            <span>Produtividade por dia</span>
+            <span className="text-[10px] font-normal text-muted-foreground">
+              {data.diario.length} dia(s)
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {data.diario.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Sem relatórios no período para exibir o gráfico diário.
+            </p>
+          ) : (
+            <div className="h-72 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={data.diario}
+                  margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.78 0.15 85 / 0.15)" />
+                  <XAxis dataKey="name" stroke="oklch(0.78 0.15 85)" />
+                  <YAxis stroke="oklch(0.78 0.15 85)" />
+                  <Tooltip
+                    contentStyle={{
+                      background: "oklch(0.16 0.02 85)",
+                      border: "1px solid oklch(0.78 0.15 85 / 0.4)",
+                      borderRadius: 8,
+                      color: "oklch(0.98 0 0)",
+                    }}
+                  />
+                  <Legend />
+                  <Bar dataKey="Meta Arv/h" fill="oklch(0.55 0.05 85)" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Arv/h" fill="oklch(0.78 0.15 85)" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Meta m³/h" fill="oklch(0.45 0.05 200)" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="m³/h" fill="oklch(0.68 0.15 200)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
     </div>
   );
 }
