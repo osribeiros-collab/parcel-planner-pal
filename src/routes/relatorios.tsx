@@ -19,7 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, Trash2, Clock, ArrowUp, ArrowDown, FilePlus, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, Clock, ArrowUp, ArrowDown, FilePlus, AlertTriangle, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import {
   Fazenda,
