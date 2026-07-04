@@ -340,9 +340,18 @@ function ModulosPage() {
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center justify-between text-primary text-base">
                   <span>{mesLabel(m.mesReferencia)}</span>
-                  <Button variant="ghost" size="icon" onClick={() => remover(m.id)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="icon" onClick={() => editar(m)}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setModulos((arr) => arr.filter((x) => x.id !== m.id))}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
