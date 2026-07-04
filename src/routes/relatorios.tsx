@@ -140,6 +140,7 @@ function Relatorios() {
   const [novoOpen, setNovoOpen] = useState(false);
   const [novoDate, setNovoDate] = useState<string>(toDateKey(new Date()));
   const [drafts, setDrafts] = useState<Draft[]>([emptyDraft()]);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const datasComRelatorio = useMemo(() => {
     const set = new Set(relatorios.map((r) => r.data));
@@ -160,8 +161,18 @@ function Relatorios() {
     setDrafts((p) => (p.length === 1 ? p : p.filter((_, i) => i !== idx)));
 
   const abrirNovo = () => {
+    setEditingId(null);
     setNovoDate(toDateKey(new Date()));
     setDrafts([emptyDraft()]);
+    setNovoOpen(true);
+  };
+
+  const abrirEdicao = (r: Relatorio) => {
+    setEditingId(r.id);
+    setNovoDate(r.data);
+    const { id: _id, data: _data, ...rest } = r;
+    setDrafts([rest]);
+    setViewDate(undefined);
     setNovoOpen(true);
   };
 
@@ -170,17 +181,29 @@ function Relatorios() {
       toast.error("Selecione uma data");
       return;
     }
-    const validos: Relatorio[] = [];
     for (const d of drafts) {
       if (!d.fazendaId || !d.talhaoId) {
         toast.error("Selecione fazenda e talhão em todos os relatórios");
         return;
       }
-      validos.push({ id: crypto.randomUUID(), data: novoDate, ...d });
     }
-    setRelatorios((prev) => [...prev, ...validos]);
-    toast.success(`${validos.length} relatório(s) salvos`);
+    if (editingId) {
+      const d = drafts[0];
+      setRelatorios((prev) =>
+        prev.map((r) => (r.id === editingId ? { ...r, data: novoDate, ...d } : r)),
+      );
+      toast.success("Relatório atualizado");
+    } else {
+      const validos: Relatorio[] = drafts.map((d) => ({
+        id: crypto.randomUUID(),
+        data: novoDate,
+        ...d,
+      }));
+      setRelatorios((prev) => [...prev, ...validos]);
+      toast.success(`${validos.length} relatório(s) salvos`);
+    }
     setNovoOpen(false);
+    setEditingId(null);
   };
 
   const removerRelatorio = (id: string) =>
