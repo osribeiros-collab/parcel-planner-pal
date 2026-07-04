@@ -476,9 +476,11 @@ function Relatorios() {
               );
             })}
 
-            <Button variant="secondary" className="w-full" onClick={addSubRelatorio}>
-              <Plus className="mr-1 h-4 w-4" /> Trabalhar em outro talhão
-            </Button>
+            {!editingId && (
+              <Button variant="secondary" className="w-full" onClick={addSubRelatorio}>
+                <Plus className="mr-1 h-4 w-4" /> Trabalhar em outro talhão
+              </Button>
+            )}
 
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="ghost" onClick={() => setNovoOpen(false)}>
