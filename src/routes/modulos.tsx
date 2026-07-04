@@ -321,9 +321,17 @@ function ModulosPage() {
             <Stat icon={<Cog className="h-4 w-4" />} label="Operadores totais" value={`${previa.totalOperadores}`} />
           </div>
 
-          <Button onClick={salvar} className="w-full sm:w-auto">
-            <Plus className="h-4 w-4" /> Salvar módulo
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={salvar} className="w-full sm:w-auto">
+              {editingId ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+              {editingId ? "Atualizar módulo" : "Salvar módulo"}
+            </Button>
+            {editingId && (
+              <Button variant="ghost" onClick={resetDraft}>
+                <X className="h-4 w-4" /> Cancelar
+              </Button>
+            )}
+          </div>
         </CardContent>
       </Card>
 
