@@ -82,9 +82,22 @@ function ModulosPage() {
     qtdMaquinas: "15",
     qtdOperadoresPorMaquina: "3",
   });
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const update = (k: keyof typeof draft, v: string) =>
     setDraft((d) => ({ ...d, [k]: v }));
+
+  const resetDraft = () => {
+    setDraft({
+      mesReferencia: "",
+      dataInicial: "",
+      dataFinal: "",
+      metaTotal: "",
+      qtdMaquinas: "15",
+      qtdOperadoresPorMaquina: "3",
+    });
+    setEditingId(null);
+  };
 
   const calc = (m: Modulo) => {
     const meta = parseNum(m.metaTotal);
@@ -102,19 +115,28 @@ function ModulosPage() {
       toast.error("Preencha meta, mês e datas.");
       return;
     }
-    setModulos((arr) => [{ id: crypto.randomUUID(), ...draft }, ...arr]);
-    setDraft({
-      mesReferencia: "",
-      dataInicial: "",
-      dataFinal: "",
-      metaTotal: "",
-      qtdMaquinas: "15",
-      qtdOperadoresPorMaquina: "3",
-    });
-    toast.success("Módulo salvo.");
+    if (editingId) {
+      setModulos((arr) => arr.map((m) => (m.id === editingId ? { id: editingId, ...draft } : m)));
+      toast.success("Módulo atualizado.");
+    } else {
+      setModulos((arr) => [{ id: crypto.randomUUID(), ...draft }, ...arr]);
+      toast.success("Módulo salvo.");
+    }
+    resetDraft();
   };
 
-  const remover = (id: string) => setModulos((arr) => arr.filter((m) => m.id !== id));
+  const editar = (m: Modulo) => {
+    setEditingId(m.id);
+    setDraft({
+      mesReferencia: m.mesReferencia,
+      dataInicial: m.dataInicial,
+      dataFinal: m.dataFinal,
+      metaTotal: m.metaTotal,
+      qtdMaquinas: m.qtdMaquinas,
+      qtdOperadoresPorMaquina: m.qtdOperadoresPorMaquina,
+    });
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const gerarPDF = (moduloAlvo?: Modulo) => {
     const usandoAntigo = !!moduloAlvo;
