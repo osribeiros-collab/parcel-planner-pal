@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash2, Plus, ChevronDown, ChevronRight } from "lucide-react";
+import { Trash2, Plus, ChevronDown, ChevronRight, Pencil, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   Fazenda,
@@ -30,6 +30,8 @@ function Index() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [showForm, setShowForm] = useState<Record<string, boolean>>({});
   const [draft, setDraft] = useState<Record<string, Omit<Talhao, "id">>>({});
+  const [editFazenda, setEditFazenda] = useState<Record<string, { codigo: string; nome: string }>>({});
+  const [editTalhao, setEditTalhao] = useState<Record<string, Omit<Talhao, "id">>>({});
 
   const salvarFazenda = () => {
     if (!codigo.trim() || !nome.trim()) {
@@ -51,6 +53,68 @@ function Index() {
 
   const removerFazenda = (id: string) => {
     setFazendas((prev) => prev.filter((f) => f.id !== id));
+  };
+
+  const iniciarEditFazenda = (f: Fazenda) =>
+    setEditFazenda((p) => ({ ...p, [f.id]: { codigo: f.codigo, nome: f.nome } }));
+  const cancelarEditFazenda = (id: string) =>
+    setEditFazenda((p) => {
+      const { [id]: _, ...rest } = p;
+      return rest;
+    });
+  const salvarEditFazenda = (id: string) => {
+    const e = editFazenda[id];
+    if (!e || !e.codigo.trim() || !e.nome.trim()) {
+      toast.error("Informe código e nome");
+      return;
+    }
+    setFazendas((prev) =>
+      prev.map((f) =>
+        f.id === id ? { ...f, codigo: e.codigo.trim(), nome: e.nome.trim() } : f,
+      ),
+    );
+    cancelarEditFazenda(id);
+    toast.success("Fazenda atualizada");
+  };
+
+  const iniciarEditTalhao = (t: Talhao) =>
+    setEditTalhao((p) => ({
+      ...p,
+      [t.id]: { numero: t.numero, vmi: t.vmi, metaArvH: t.metaArvH, metaM3H: t.metaM3H },
+    }));
+  const cancelarEditTalhao = (tid: string) =>
+    setEditTalhao((p) => {
+      const { [tid]: _, ...rest } = p;
+      return rest;
+    });
+  const salvarEditTalhao = (fid: string, tid: string) => {
+    const e = editTalhao[tid];
+    if (!e || !e.numero.trim()) {
+      toast.error("Informe o número do talhão");
+      return;
+    }
+    setFazendas((prev) =>
+      prev.map((f) =>
+        f.id === fid
+          ? {
+              ...f,
+              talhoes: f.talhoes.map((t) =>
+                t.id === tid
+                  ? {
+                      ...t,
+                      numero: e.numero.trim(),
+                      vmi: e.vmi.trim(),
+                      metaArvH: e.metaArvH.trim(),
+                      metaM3H: e.metaM3H.trim(),
+                    }
+                  : t,
+              ),
+            }
+          : f,
+      ),
+    );
+    cancelarEditTalhao(tid);
+    toast.success("Talhão atualizado");
   };
 
   const toggle = (id: string) => setExpanded((p) => ({ ...p, [id]: !p[id] }));
@@ -131,25 +195,64 @@ function Index() {
             {fazendas.map((f) => {
               const isOpen = !!expanded[f.id];
               const d = getDraft(f.id);
+              const ef = editFazenda[f.id];
               return (
                 <Card key={f.id} className="border-primary/20">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                    <button onClick={() => toggle(f.id)} className="flex flex-1 items-center gap-2 text-left">
-                      {isOpen ? (
-                        <ChevronDown className="h-4 w-4 text-primary" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4 text-primary" />
-                      )}
-                      <div>
-                        <CardTitle className="text-base text-primary">{f.nome}</CardTitle>
-                        <p className="text-xs text-muted-foreground">
-                          Código: {f.codigo} · {f.talhoes.length} talhão(ões)
-                        </p>
+                    {ef ? (
+                      <div className="flex flex-1 flex-col gap-2 sm:flex-row">
+                        <Input
+                          value={ef.codigo}
+                          onChange={(e) =>
+                            setEditFazenda((p) => ({ ...p, [f.id]: { ...ef, codigo: e.target.value } }))
+                          }
+                          placeholder="Código"
+                          className="sm:max-w-[120px]"
+                        />
+                        <Input
+                          value={ef.nome}
+                          onChange={(e) =>
+                            setEditFazenda((p) => ({ ...p, [f.id]: { ...ef, nome: e.target.value } }))
+                          }
+                          placeholder="Nome"
+                        />
                       </div>
-                    </button>
-                    <Button variant="ghost" size="icon" onClick={() => removerFazenda(f.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    ) : (
+                      <button onClick={() => toggle(f.id)} className="flex flex-1 items-center gap-2 text-left">
+                        {isOpen ? (
+                          <ChevronDown className="h-4 w-4 text-primary" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4 text-primary" />
+                        )}
+                        <div>
+                          <CardTitle className="text-base text-primary">{f.nome}</CardTitle>
+                          <p className="text-xs text-muted-foreground">
+                            Código: {f.codigo} · {f.talhoes.length} talhão(ões)
+                          </p>
+                        </div>
+                      </button>
+                    )}
+                    <div className="flex items-center gap-1">
+                      {ef ? (
+                        <>
+                          <Button variant="ghost" size="icon" onClick={() => salvarEditFazenda(f.id)}>
+                            <Check className="h-4 w-4 text-emerald-500" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => cancelarEditFazenda(f.id)}>
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Button variant="ghost" size="icon" onClick={() => iniciarEditFazenda(f)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => removerFazenda(f.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </CardHeader>
 
                   {isOpen && (
@@ -167,19 +270,82 @@ function Index() {
                               </tr>
                             </thead>
                             <tbody>
-                              {f.talhoes.map((t) => (
-                                <tr key={t.id} className="border-t border-primary/10">
-                                  <td className="px-3 py-2">{t.numero}</td>
-                                  <td className="px-3 py-2">{t.vmi || "—"}</td>
-                                  <td className="px-3 py-2">{t.metaArvH || "—"}</td>
-                                  <td className="px-3 py-2">{t.metaM3H || "—"}</td>
-                                  <td className="px-3 py-2 text-right">
-                                    <Button variant="ghost" size="icon" onClick={() => removeTalhao(f.id, t.id)}>
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </td>
-                                </tr>
-                              ))}
+                              {f.talhoes.map((t) => {
+                                const et = editTalhao[t.id];
+                                if (et) {
+                                  return (
+                                    <tr key={t.id} className="border-t border-primary/10 bg-secondary/20">
+                                      <td className="px-2 py-1">
+                                        <Input
+                                          value={et.numero}
+                                          onChange={(e) =>
+                                            setEditTalhao((p) => ({ ...p, [t.id]: { ...et, numero: e.target.value } }))
+                                          }
+                                          className="h-8"
+                                        />
+                                      </td>
+                                      <td className="px-2 py-1">
+                                        <Input
+                                          value={et.vmi}
+                                          onChange={(e) =>
+                                            setEditTalhao((p) => ({ ...p, [t.id]: { ...et, vmi: e.target.value } }))
+                                          }
+                                          inputMode="decimal"
+                                          className="h-8"
+                                        />
+                                      </td>
+                                      <td className="px-2 py-1">
+                                        <Input
+                                          value={et.metaArvH}
+                                          onChange={(e) =>
+                                            setEditTalhao((p) => ({ ...p, [t.id]: { ...et, metaArvH: e.target.value } }))
+                                          }
+                                          inputMode="decimal"
+                                          className="h-8"
+                                        />
+                                      </td>
+                                      <td className="px-2 py-1">
+                                        <Input
+                                          value={et.metaM3H}
+                                          onChange={(e) =>
+                                            setEditTalhao((p) => ({ ...p, [t.id]: { ...et, metaM3H: e.target.value } }))
+                                          }
+                                          inputMode="decimal"
+                                          className="h-8"
+                                        />
+                                      </td>
+                                      <td className="px-2 py-1 text-right">
+                                        <div className="flex justify-end gap-1">
+                                          <Button variant="ghost" size="icon" onClick={() => salvarEditTalhao(f.id, t.id)}>
+                                            <Check className="h-4 w-4 text-emerald-500" />
+                                          </Button>
+                                          <Button variant="ghost" size="icon" onClick={() => cancelarEditTalhao(t.id)}>
+                                            <X className="h-4 w-4" />
+                                          </Button>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  );
+                                }
+                                return (
+                                  <tr key={t.id} className="border-t border-primary/10">
+                                    <td className="px-3 py-2">{t.numero}</td>
+                                    <td className="px-3 py-2">{t.vmi || "—"}</td>
+                                    <td className="px-3 py-2">{t.metaArvH || "—"}</td>
+                                    <td className="px-3 py-2">{t.metaM3H || "—"}</td>
+                                    <td className="px-3 py-2 text-right">
+                                      <div className="flex justify-end gap-1">
+                                        <Button variant="ghost" size="icon" onClick={() => iniciarEditTalhao(t)}>
+                                          <Pencil className="h-4 w-4" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" onClick={() => removeTalhao(f.id, t.id)}>
+                                          <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
                             </tbody>
                           </table>
                         </div>

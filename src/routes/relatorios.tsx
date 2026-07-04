@@ -19,7 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, Trash2, Clock, ArrowUp, ArrowDown, FilePlus, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, Clock, ArrowUp, ArrowDown, FilePlus, AlertTriangle, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import {
   Fazenda,
@@ -140,6 +140,7 @@ function Relatorios() {
   const [novoOpen, setNovoOpen] = useState(false);
   const [novoDate, setNovoDate] = useState<string>(toDateKey(new Date()));
   const [drafts, setDrafts] = useState<Draft[]>([emptyDraft()]);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const datasComRelatorio = useMemo(() => {
     const set = new Set(relatorios.map((r) => r.data));
@@ -160,8 +161,18 @@ function Relatorios() {
     setDrafts((p) => (p.length === 1 ? p : p.filter((_, i) => i !== idx)));
 
   const abrirNovo = () => {
+    setEditingId(null);
     setNovoDate(toDateKey(new Date()));
     setDrafts([emptyDraft()]);
+    setNovoOpen(true);
+  };
+
+  const abrirEdicao = (r: Relatorio) => {
+    setEditingId(r.id);
+    setNovoDate(r.data);
+    const { id: _id, data: _data, ...rest } = r;
+    setDrafts([rest]);
+    setViewDate(undefined);
     setNovoOpen(true);
   };
 
@@ -170,17 +181,29 @@ function Relatorios() {
       toast.error("Selecione uma data");
       return;
     }
-    const validos: Relatorio[] = [];
     for (const d of drafts) {
       if (!d.fazendaId || !d.talhaoId) {
         toast.error("Selecione fazenda e talhão em todos os relatórios");
         return;
       }
-      validos.push({ id: crypto.randomUUID(), data: novoDate, ...d });
     }
-    setRelatorios((prev) => [...prev, ...validos]);
-    toast.success(`${validos.length} relatório(s) salvos`);
+    if (editingId) {
+      const d = drafts[0];
+      setRelatorios((prev) =>
+        prev.map((r) => (r.id === editingId ? { ...r, data: novoDate, ...d } : r)),
+      );
+      toast.success("Relatório atualizado");
+    } else {
+      const validos: Relatorio[] = drafts.map((d) => ({
+        id: crypto.randomUUID(),
+        data: novoDate,
+        ...d,
+      }));
+      setRelatorios((prev) => [...prev, ...validos]);
+      toast.success(`${validos.length} relatório(s) salvos`);
+    }
     setNovoOpen(false);
+    setEditingId(null);
   };
 
   const removerRelatorio = (id: string) =>
@@ -266,13 +289,18 @@ function Relatorios() {
                           <div className="text-xs italic text-muted-foreground">"{r.obs}"</div>
                         )}
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removerRelatorio(r.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => abrirEdicao(r)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removerRelatorio(r.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
 
                     <JornadaAlert
@@ -297,7 +325,7 @@ function Relatorios() {
       <Dialog open={novoOpen} onOpenChange={setNovoOpen}>
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-primary">Novo relatório</DialogTitle>
+            <DialogTitle className="text-primary">{editingId ? "Editar relatório" : "Novo relatório"}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-3">
@@ -448,9 +476,11 @@ function Relatorios() {
               );
             })}
 
-            <Button variant="secondary" className="w-full" onClick={addSubRelatorio}>
-              <Plus className="mr-1 h-4 w-4" /> Trabalhar em outro talhão
-            </Button>
+            {!editingId && (
+              <Button variant="secondary" className="w-full" onClick={addSubRelatorio}>
+                <Plus className="mr-1 h-4 w-4" /> Trabalhar em outro talhão
+              </Button>
+            )}
 
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="ghost" onClick={() => setNovoOpen(false)}>

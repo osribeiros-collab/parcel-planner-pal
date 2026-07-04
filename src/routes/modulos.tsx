@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash2, Plus, Boxes, Target, Users, Cog, FileDown } from "lucide-react";
+import { Trash2, Plus, Boxes, Target, Users, Cog, FileDown, Pencil, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   useLocalState,
@@ -82,9 +82,22 @@ function ModulosPage() {
     qtdMaquinas: "15",
     qtdOperadoresPorMaquina: "3",
   });
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const update = (k: keyof typeof draft, v: string) =>
     setDraft((d) => ({ ...d, [k]: v }));
+
+  const resetDraft = () => {
+    setDraft({
+      mesReferencia: "",
+      dataInicial: "",
+      dataFinal: "",
+      metaTotal: "",
+      qtdMaquinas: "15",
+      qtdOperadoresPorMaquina: "3",
+    });
+    setEditingId(null);
+  };
 
   const calc = (m: Modulo) => {
     const meta = parseNum(m.metaTotal);
@@ -102,19 +115,28 @@ function ModulosPage() {
       toast.error("Preencha meta, mês e datas.");
       return;
     }
-    setModulos((arr) => [{ id: crypto.randomUUID(), ...draft }, ...arr]);
-    setDraft({
-      mesReferencia: "",
-      dataInicial: "",
-      dataFinal: "",
-      metaTotal: "",
-      qtdMaquinas: "15",
-      qtdOperadoresPorMaquina: "3",
-    });
-    toast.success("Módulo salvo.");
+    if (editingId) {
+      setModulos((arr) => arr.map((m) => (m.id === editingId ? { id: editingId, ...draft } : m)));
+      toast.success("Módulo atualizado.");
+    } else {
+      setModulos((arr) => [{ id: crypto.randomUUID(), ...draft }, ...arr]);
+      toast.success("Módulo salvo.");
+    }
+    resetDraft();
   };
 
-  const remover = (id: string) => setModulos((arr) => arr.filter((m) => m.id !== id));
+  const editar = (m: Modulo) => {
+    setEditingId(m.id);
+    setDraft({
+      mesReferencia: m.mesReferencia,
+      dataInicial: m.dataInicial,
+      dataFinal: m.dataFinal,
+      metaTotal: m.metaTotal,
+      qtdMaquinas: m.qtdMaquinas,
+      qtdOperadoresPorMaquina: m.qtdOperadoresPorMaquina,
+    });
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const gerarPDF = (moduloAlvo?: Modulo) => {
     const usandoAntigo = !!moduloAlvo;
@@ -237,7 +259,7 @@ function ModulosPage() {
       <Card className="border-primary/20">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-primary">
-            <Boxes className="h-5 w-5" /> Novo módulo
+            <Boxes className="h-5 w-5" /> {editingId ? "Editar módulo" : "Novo módulo"}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -299,9 +321,17 @@ function ModulosPage() {
             <Stat icon={<Cog className="h-4 w-4" />} label="Operadores totais" value={`${previa.totalOperadores}`} />
           </div>
 
-          <Button onClick={salvar} className="w-full sm:w-auto">
-            <Plus className="h-4 w-4" /> Salvar módulo
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={salvar} className="w-full sm:w-auto">
+              {editingId ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+              {editingId ? "Atualizar módulo" : "Salvar módulo"}
+            </Button>
+            {editingId && (
+              <Button variant="ghost" onClick={resetDraft}>
+                <X className="h-4 w-4" /> Cancelar
+              </Button>
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -318,9 +348,18 @@ function ModulosPage() {
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center justify-between text-primary text-base">
                   <span>{mesLabel(m.mesReferencia)}</span>
-                  <Button variant="ghost" size="icon" onClick={() => remover(m.id)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="icon" onClick={() => editar(m)}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setModulos((arr) => arr.filter((x) => x.id !== m.id))}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
