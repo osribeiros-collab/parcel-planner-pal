@@ -259,7 +259,7 @@ function ModulosPage() {
       <Card className="border-primary/20">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-primary">
-            <Boxes className="h-5 w-5" /> Novo módulo
+            <Boxes className="h-5 w-5" /> {editingId ? "Editar módulo" : "Novo módulo"}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
