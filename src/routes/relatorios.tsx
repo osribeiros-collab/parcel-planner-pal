@@ -325,7 +325,7 @@ function Relatorios() {
       <Dialog open={novoOpen} onOpenChange={setNovoOpen}>
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-primary">Novo relatório</DialogTitle>
+            <DialogTitle className="text-primary">{editingId ? "Editar relatório" : "Novo relatório"}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-3">
