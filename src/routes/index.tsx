@@ -80,11 +80,13 @@ function Dashboard() {
     let opStop = 0;
     let mecStop = 0;
     let m3Total = 0;
+    let metaM3Periodo = 0;
     const talhoesUsados = new Set<string>();
     const byDay = new Map<
       string,
       { arv: number; ht: number; m3: number; metaArvHsum: number; metaM3Hsum: number; metaCount: number }
     >();
+
 
     for (const r of relatorios) {
       if (!isInProductionMonth(r.data)) continue;
