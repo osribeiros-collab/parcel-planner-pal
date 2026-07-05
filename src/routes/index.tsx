@@ -238,6 +238,42 @@ function Dashboard() {
         </CardContent>
       </Card>
 
+      <Card className="border-primary/20 bg-gradient-to-br from-secondary/30 to-background">
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between gap-2 text-primary">
+            <span className="flex items-center gap-2"><Target className="h-5 w-5" /> Produção m³</span>
+            <span className="text-[10px] font-normal text-muted-foreground">{periodoLabel}</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {data.metaM3Periodo > 0 ? (
+            <>
+              <div className="flex items-end justify-between gap-3">
+                <div>
+                  <p className="text-3xl font-bold text-emerald-400">
+                    {fmt((data.m3Total / data.metaM3Periodo) * 100, 1)}%
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {fmt(data.m3Total)} m³ de {fmt(data.metaM3Periodo)} m³ (meta do período)
+                  </p>
+                </div>
+                {trend((data.m3Total / data.metaM3Periodo) * 100, 100)}
+              </div>
+              <Progress
+                value={Math.min(100, (data.m3Total / data.metaM3Periodo) * 100)}
+                className="[&>div]:bg-emerald-500"
+              />
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Registre relatórios com horas e meta m³/h para calcular a produção.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+
+
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard
           icon={<TreePine className="h-4 w-4" />}
