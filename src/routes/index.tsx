@@ -160,6 +160,7 @@ function Dashboard() {
       opStop,
       mecStop,
       m3Total,
+      metaM3Periodo,
       prod,
       m3h,
       metaArvHmed: metaArvHsoma / Math.max(1, talhoesUsados.size),
