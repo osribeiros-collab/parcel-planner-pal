@@ -80,11 +80,13 @@ function Dashboard() {
     let opStop = 0;
     let mecStop = 0;
     let m3Total = 0;
+    let metaM3Periodo = 0;
     const talhoesUsados = new Set<string>();
     const byDay = new Map<
       string,
       { arv: number; ht: number; m3: number; metaArvHsum: number; metaM3Hsum: number; metaCount: number }
     >();
+
 
     for (const r of relatorios) {
       if (!isInProductionMonth(r.data)) continue;
@@ -100,6 +102,7 @@ function Dashboard() {
       opStop += parseHoras(r.paradaOperacional);
       mecStop += parseHoras(r.paradaMecanica);
       m3Total += a * vmi;
+      metaM3Periodo += ht * metaM3H;
       if (t) talhoesUsados.add(`${r.fazendaId}:${r.talhaoId}`);
 
       const d = byDay.get(r.data) || {
@@ -157,6 +160,7 @@ function Dashboard() {
       opStop,
       mecStop,
       m3Total,
+      metaM3Periodo,
       prod,
       m3h,
       metaArvHmed: metaArvHsoma / Math.max(1, talhoesUsados.size),
@@ -233,6 +237,42 @@ function Dashboard() {
           )}
         </CardContent>
       </Card>
+
+      <Card className="border-primary/20 bg-gradient-to-br from-secondary/30 to-background">
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between gap-2 text-primary">
+            <span className="flex items-center gap-2"><Target className="h-5 w-5" /> Produção m³</span>
+            <span className="text-[10px] font-normal text-muted-foreground">{periodoLabel}</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {data.metaM3Periodo > 0 ? (
+            <>
+              <div className="flex items-end justify-between gap-3">
+                <div>
+                  <p className="text-3xl font-bold text-emerald-400">
+                    {fmt((data.m3Total / data.metaM3Periodo) * 100, 1)}%
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {fmt(data.m3Total)} m³ de {fmt(data.metaM3Periodo)} m³ (meta do período)
+                  </p>
+                </div>
+                {trend((data.m3Total / data.metaM3Periodo) * 100, 100)}
+              </div>
+              <Progress
+                value={Math.min(100, (data.m3Total / data.metaM3Periodo) * 100)}
+                className="[&>div]:bg-emerald-500"
+              />
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Registre relatórios com horas e meta m³/h para calcular a produção.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard
