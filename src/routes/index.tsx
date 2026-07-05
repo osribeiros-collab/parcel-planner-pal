@@ -102,6 +102,7 @@ function Dashboard() {
       opStop += parseHoras(r.paradaOperacional);
       mecStop += parseHoras(r.paradaMecanica);
       m3Total += a * vmi;
+      metaM3Periodo += ht * metaM3H;
       if (t) talhoesUsados.add(`${r.fazendaId}:${r.talhaoId}`);
 
       const d = byDay.get(r.data) || {
