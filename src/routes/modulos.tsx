@@ -439,7 +439,7 @@ function ModulosPage() {
                 </div>
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>{dataInic.toLocaleDateString("pt-BR")} → {dataFim.toLocaleDateString("pt-BR")}</span>
-                  <Button size="sm" variant="secondary" onClick={() => gerarPDF(m)}>
+                  <Button size="sm" variant="secondary" onClick={() => abrirPdfDialog(m)}>
                     <FileDown className="mr-1 h-3 w-3" /> PDF
                   </Button>
                 </div>
@@ -448,9 +448,47 @@ function ModulosPage() {
           );
         })}
       </div>
+
+      <Dialog open={pdfOpen} onOpenChange={setPdfOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Personalizar PDF</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 text-sm">
+            {([
+              ["arvores", "Total de árvores"],
+              ["m3", "Metros cúbicos totais"],
+              ["ajuste", "Ajuste sistêmico do período"],
+              ["horas", "Horas de trabalho e paradas"],
+              ["eficiencia", "Eficiência geral (Arv/h e m³/h)"],
+              ["relatorios", "Todos os relatórios do mês"],
+            ] as const).map(([k, label]) => (
+              <label key={k} className="flex items-center gap-2 cursor-pointer">
+                <Checkbox
+                  checked={pdfOpts[k]}
+                  onCheckedChange={(v) => setPdfOpts((o) => ({ ...o, [k]: !!v }))}
+                />
+                <span>{label}</span>
+              </label>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setPdfOpen(false)}>Cancelar</Button>
+            <Button
+              onClick={() => {
+                gerarPDF(pdfTarget ?? undefined, pdfOpts);
+                setPdfOpen(false);
+              }}
+            >
+              <FileDown className="h-4 w-4" /> Gerar PDF
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
 
 function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
