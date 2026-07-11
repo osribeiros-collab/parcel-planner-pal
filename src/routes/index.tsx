@@ -257,18 +257,19 @@ function Dashboard() {
               <div className="flex items-end justify-between gap-3">
                 <div>
                   <p className="text-3xl font-bold text-emerald-400">
-                    {fmt((data.m3Total / data.metaM3Periodo) * 100, 1)}%
+                    {fmt((m3TotalAjustado / data.metaM3Periodo) * 100, 1)}%
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {fmt(data.m3Total)} m³ de {fmt(data.metaM3Periodo)} m³ (meta do período)
+                    {fmt(m3TotalAjustado)} m³ de {fmt(data.metaM3Periodo)} m³ (meta do período)
                   </p>
                 </div>
-                {trend((data.m3Total / data.metaM3Periodo) * 100, 100)}
+                {trend((m3TotalAjustado / data.metaM3Periodo) * 100, 100)}
               </div>
               <Progress
-                value={Math.min(100, (data.m3Total / data.metaM3Periodo) * 100)}
+                value={Math.min(100, (m3TotalAjustado / data.metaM3Periodo) * 100)}
                 className="[&>div]:bg-emerald-500"
               />
+
             </>
           ) : (
             <p className="text-sm text-muted-foreground">
