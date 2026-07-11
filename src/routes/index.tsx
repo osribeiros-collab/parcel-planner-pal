@@ -229,7 +229,7 @@ function Dashboard() {
                 <div>
                   <p className="text-3xl font-bold text-primary">{fmt(pctMeta, 1)}%</p>
                   <p className="text-xs text-muted-foreground">
-                    {fmt(data.m3Total)} m³ de {fmt(metaPessoal)} m³
+                    {fmt(m3TotalAjustado)} m³ de {fmt(metaPessoal)} m³
                   </p>
                 </div>
                 {trend(pctMeta, 100)}
