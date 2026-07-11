@@ -169,7 +169,7 @@ function ModulosPage() {
   };
 
 
-  const gerarPDF = (moduloAlvo?: Modulo) => {
+  const gerarPDF = (moduloAlvo?: Modulo, opts = pdfOpts) => {
     const usandoAntigo = !!moduloAlvo;
     const start = usandoAntigo ? new Date(moduloAlvo!.dataInicial) : rangeAtual.start;
     const end = usandoAntigo ? new Date(moduloAlvo!.dataFinal) : rangeAtual.end;
@@ -191,20 +191,22 @@ function ModulosPage() {
       op += parseHoras(r.paradaOperacional);
       mec += parseHoras(r.paradaMecanica);
     }
-    const m3h = trab > 0 ? m3 / trab : 0;
-    const arvh = trab > 0 ? arv / trab : 0;
     const mod = usandoAntigo ? moduloAlvo! : (modulos.find((m) => {
       const ms = m.dataInicial; const me = m.dataFinal;
       if (!ms || !me) return false;
       const sk = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-${String(start.getDate()).padStart(2, "0")}`;
       return ms <= sk && me >= sk;
     }) || modulos[0]);
+    const ajuste = mod ? parseNum(mod.ajusteSistemico || "0") : 0;
+    const m3Ajustado = m3 + ajuste;
+    const m3h = trab > 0 ? m3Ajustado / trab : 0;
+    const arvh = trab > 0 ? arv / trab : 0;
     const metaPessoal = mod
       ? parseNum(mod.metaTotal) /
         Math.max(1, parseNum(mod.qtdMaquinas)) /
         Math.max(1, parseNum(mod.qtdOperadoresPorMaquina))
       : 0;
-    const pct = metaPessoal > 0 ? (m3 / metaPessoal) * 100 : 0;
+    const pct = metaPessoal > 0 ? (m3Ajustado / metaPessoal) * 100 : 0;
 
     const doc = new jsPDF();
     let y = 18;
@@ -217,15 +219,22 @@ function ModulosPage() {
     doc.setFontSize(12);
     doc.text("Totais", 14, y); y += 6;
     doc.setFontSize(10);
-    const linhas = [
-      ["Árvores", fmt(arv)],
-      ["Volume (m³)", `${fmt(m3)} m³`],
-      ["Hora trabalhando", fmtHoras(trab)],
-      ["Parada operacional", fmtHoras(op)],
-      ["Parada mecânica", fmtHoras(mec)],
-      ["Produtividade", `${fmt(arvh)} árv/h`],
-      ["m³/h", `${fmt(m3h)} m³/h`],
-    ];
+    const linhas: [string, string][] = [];
+    if (opts.arvores) linhas.push(["Árvores", fmt(arv)]);
+    if (opts.m3) {
+      linhas.push(["Volume bruto (m³)", `${fmt(m3)} m³`]);
+      linhas.push(["Volume ajustado (m³)", `${fmt(m3Ajustado)} m³`]);
+    }
+    if (opts.ajuste) linhas.push(["Ajuste sistêmico", `${ajuste >= 0 ? "+" : ""}${fmt(ajuste)} m³`]);
+    if (opts.horas) {
+      linhas.push(["Hora trabalhando", fmtHoras(trab)]);
+      linhas.push(["Parada operacional", fmtHoras(op)]);
+      linhas.push(["Parada mecânica", fmtHoras(mec)]);
+    }
+    if (opts.eficiencia) {
+      linhas.push(["Produtividade", `${fmt(arvh)} árv/h`]);
+      linhas.push(["m³/h", `${fmt(m3h)} m³/h`]);
+    }
     for (const [k, v] of linhas) {
       doc.text(`${k}:`, 16, y);
       doc.text(v, 90, y);
@@ -237,36 +246,39 @@ function ModulosPage() {
     doc.setFontSize(10);
     if (mod) {
       doc.text(`Meta: ${fmt(metaPessoal)} m³`, 16, y); y += 6;
-      doc.text(`Realizado: ${fmt(m3)} m³ (${fmt(pct, 1)}%)`, 16, y); y += 8;
+      doc.text(`Realizado: ${fmt(m3Ajustado)} m³ (${fmt(pct, 1)}%)`, 16, y); y += 8;
     } else {
       doc.text("Nenhum módulo cadastrado para o período.", 16, y); y += 8;
     }
 
-    doc.setFontSize(12);
-    doc.text("Relatórios do período", 14, y); y += 6;
-    doc.setFontSize(9);
-    if (rels.length === 0) {
-      doc.text("Sem relatórios.", 16, y);
-    } else {
-      const sorted = [...rels].sort((a, b) => a.data.localeCompare(b.data));
-      for (const r of sorted) {
-        if (y > 280) { doc.addPage(); y = 18; }
-        const f = fazendas.find((x) => x.id === r.fazendaId);
-        const t = f?.talhoes.find((x) => x.id === r.talhaoId);
-        const a = parseNum(r.arv);
-        const v = a * parseNum(t?.vmi || "0");
-        const dataBR = r.data.split("-").reverse().join("/");
-        doc.text(
-          `${dataBR}  ${f?.codigo ?? "?"} T${t?.numero ?? "?"}  Árv ${a}  ${fmt(v)}m³  Tr ${r.horaTrabalhando || "-"} Op ${r.paradaOperacional || "-"} Mec ${r.paradaMecanica || "-"}`,
-          16, y,
-        );
-        y += 5;
+    if (opts.relatorios) {
+      doc.setFontSize(12);
+      doc.text("Relatórios do período", 14, y); y += 6;
+      doc.setFontSize(9);
+      if (rels.length === 0) {
+        doc.text("Sem relatórios.", 16, y);
+      } else {
+        const sorted = [...rels].sort((a, b) => a.data.localeCompare(b.data));
+        for (const r of sorted) {
+          if (y > 280) { doc.addPage(); y = 18; }
+          const f = fazendas.find((x) => x.id === r.fazendaId);
+          const t = f?.talhoes.find((x) => x.id === r.talhaoId);
+          const a = parseNum(r.arv);
+          const v = a * parseNum(t?.vmi || "0");
+          const dataBR = r.data.split("-").reverse().join("/");
+          doc.text(
+            `${dataBR}  ${f?.codigo ?? "?"} T${t?.numero ?? "?"}  Árv ${a}  ${fmt(v)}m³  Tr ${r.horaTrabalhando || "-"} Op ${r.paradaOperacional || "-"} Mec ${r.paradaMecanica || "-"}`,
+            16, y,
+          );
+          y += 5;
+        }
       }
     }
 
     doc.save(`harvest-${periodo.replace(/\//g, "-").replace(/ /g, "")}.pdf`);
     toast.success("PDF gerado.");
   };
+
 
   return (
     <div className="space-y-6">
