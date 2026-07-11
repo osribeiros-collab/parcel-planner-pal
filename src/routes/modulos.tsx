@@ -356,7 +356,20 @@ function ModulosPage() {
                 onChange={(e) => update("qtdOperadoresPorMaquina", e.target.value)}
               />
             </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label>Ajuste sistêmico (m³)</Label>
+              <Input
+                inputMode="decimal"
+                placeholder="Ex: -154.00 ou 50.00"
+                value={draft.ajusteSistemico ?? ""}
+                onChange={(e) => update("ajusteSistemico", e.target.value)}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Acrescenta ou retira do total acumulado. Aceita valores positivos e negativos. Não afeta o gráfico "Produtividade por dia".
+              </p>
+            </div>
           </div>
+
 
           <div className="grid gap-3 rounded-md border border-primary/20 bg-secondary/30 p-3 sm:grid-cols-3">
             <Stat icon={<Target className="h-4 w-4" />} label="Meta / máquina" value={`${fmt(previa.porMaquina)} m³`} />
