@@ -290,7 +290,7 @@ function ModulosPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Button onClick={() => gerarPDF()} className="w-full">
+          <Button onClick={() => abrirPdfDialog()} className="w-full">
             <FileDown className="h-4 w-4" /> Gerar PDF do mês de produção
           </Button>
           <p className="mt-2 text-[11px] text-muted-foreground">
