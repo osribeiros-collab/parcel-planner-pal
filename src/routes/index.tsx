@@ -290,7 +290,7 @@ function Dashboard() {
         <StatCard
           icon={<Target className="h-4 w-4" />}
           label="Total m³"
-          value={fmt(data.m3Total)}
+          value={fmt(m3TotalAjustado)}
         />
         <StatCard
           icon={<Clock className="h-4 w-4" />}
