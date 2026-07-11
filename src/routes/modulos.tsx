@@ -91,6 +91,7 @@ function ModulosPage() {
     metaTotal: "",
     qtdMaquinas: "15",
     qtdOperadoresPorMaquina: "3",
+    ajusteSistemico: "",
   });
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -105,9 +106,11 @@ function ModulosPage() {
       metaTotal: "",
       qtdMaquinas: "15",
       qtdOperadoresPorMaquina: "3",
+      ajusteSistemico: "",
     });
     setEditingId(null);
   };
+
 
   const calc = (m: Modulo) => {
     const meta = parseNum(m.metaTotal);
