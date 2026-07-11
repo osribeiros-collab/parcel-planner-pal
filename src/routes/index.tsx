@@ -326,14 +326,15 @@ function Dashboard() {
         <CardContent className="space-y-3">
           <div className="flex items-end justify-between gap-3">
             <div>
-              <p className="text-3xl font-bold text-primary">{fmt(data.eficiencia, 1)}%</p>
+              <p className="text-3xl font-bold text-primary">{fmt(eficienciaAjustada, 1)}%</p>
               <p className="text-xs text-muted-foreground">
-                Real {fmt(data.m3h)} m³/h ÷ Meta {fmt(data.metaM3Hmed)} m³/h
+                Real {fmt(m3hAjustado)} m³/h ÷ Meta {fmt(data.metaM3Hmed)} m³/h
               </p>
             </div>
-            {trend(data.eficiencia, 100)}
+            {trend(eficienciaAjustada, 100)}
           </div>
-          <Progress value={Math.min(100, data.eficiencia)} />
+          <Progress value={Math.min(100, eficienciaAjustada)} />
+
         </CardContent>
       </Card>
 
