@@ -179,7 +179,12 @@ function Dashboard() {
       Math.max(1, parseNum(moduloAtivo.qtdMaquinas)) /
       Math.max(1, parseNum(moduloAtivo.qtdOperadoresPorMaquina))
     : 0;
-  const pctMeta = metaPessoal > 0 ? (data.m3Total / metaPessoal) * 100 : 0;
+  const ajusteSistemico = moduloAtivo ? parseNum(moduloAtivo.ajusteSistemico || "0") : 0;
+  const m3TotalAjustado = data.m3Total + ajusteSistemico;
+  const m3hAjustado = data.trabalho > 0 ? m3TotalAjustado / data.trabalho : 0;
+  const eficienciaAjustada =
+    data.metaM3Hmed > 0 ? (m3hAjustado / data.metaM3Hmed) * 100 : 0;
+  const pctMeta = metaPessoal > 0 ? (m3TotalAjustado / metaPessoal) * 100 : 0;
 
   const chart = [
     {
@@ -190,9 +195,10 @@ function Dashboard() {
     {
       name: "m³/h",
       Meta: Number(data.metaM3Hmed.toFixed(2)),
-      Produzido: Number(data.m3h.toFixed(2)),
+      Produzido: Number(m3hAjustado.toFixed(2)),
     },
   ];
+
 
   const trend = (val: number, meta: number) => {
     if (meta <= 0) return null;
@@ -223,12 +229,19 @@ function Dashboard() {
                 <div>
                   <p className="text-3xl font-bold text-primary">{fmt(pctMeta, 1)}%</p>
                   <p className="text-xs text-muted-foreground">
-                    {fmt(data.m3Total)} m³ de {fmt(metaPessoal)} m³
+                    {fmt(m3TotalAjustado)} m³ de {fmt(metaPessoal)} m³
                   </p>
                 </div>
                 {trend(pctMeta, 100)}
               </div>
               <Progress value={Math.min(100, pctMeta)} />
+              {ajusteSistemico !== 0 && (
+                <p className="text-[11px] text-muted-foreground">
+                  Ajuste sistêmico aplicado: {ajusteSistemico >= 0 ? "+" : ""}
+                  {fmt(ajusteSistemico)} m³ (bruto {fmt(data.m3Total)} m³)
+                </p>
+              )}
+
             </>
           ) : (
             <p className="text-sm text-muted-foreground">
@@ -251,18 +264,19 @@ function Dashboard() {
               <div className="flex items-end justify-between gap-3">
                 <div>
                   <p className="text-3xl font-bold text-emerald-400">
-                    {fmt((data.m3Total / data.metaM3Periodo) * 100, 1)}%
+                    {fmt((m3TotalAjustado / data.metaM3Periodo) * 100, 1)}%
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {fmt(data.m3Total)} m³ de {fmt(data.metaM3Periodo)} m³ (meta do período)
+                    {fmt(m3TotalAjustado)} m³ de {fmt(data.metaM3Periodo)} m³ (meta do período)
                   </p>
                 </div>
-                {trend((data.m3Total / data.metaM3Periodo) * 100, 100)}
+                {trend((m3TotalAjustado / data.metaM3Periodo) * 100, 100)}
               </div>
               <Progress
-                value={Math.min(100, (data.m3Total / data.metaM3Periodo) * 100)}
+                value={Math.min(100, (m3TotalAjustado / data.metaM3Periodo) * 100)}
                 className="[&>div]:bg-emerald-500"
               />
+
             </>
           ) : (
             <p className="text-sm text-muted-foreground">
@@ -283,7 +297,7 @@ function Dashboard() {
         <StatCard
           icon={<Target className="h-4 w-4" />}
           label="Total m³"
-          value={fmt(data.m3Total)}
+          value={fmt(m3TotalAjustado)}
         />
         <StatCard
           icon={<Clock className="h-4 w-4" />}
@@ -319,14 +333,15 @@ function Dashboard() {
         <CardContent className="space-y-3">
           <div className="flex items-end justify-between gap-3">
             <div>
-              <p className="text-3xl font-bold text-primary">{fmt(data.eficiencia, 1)}%</p>
+              <p className="text-3xl font-bold text-primary">{fmt(eficienciaAjustada, 1)}%</p>
               <p className="text-xs text-muted-foreground">
-                Real {fmt(data.m3h)} m³/h ÷ Meta {fmt(data.metaM3Hmed)} m³/h
+                Real {fmt(m3hAjustado)} m³/h ÷ Meta {fmt(data.metaM3Hmed)} m³/h
               </p>
             </div>
-            {trend(data.eficiencia, 100)}
+            {trend(eficienciaAjustada, 100)}
           </div>
-          <Progress value={Math.min(100, data.eficiencia)} />
+          <Progress value={Math.min(100, eficienciaAjustada)} />
+
         </CardContent>
       </Card>
 

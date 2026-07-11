@@ -16,6 +16,14 @@ import {
   productionMonthLabel,
 } from "@/lib/harvest";
 import jsPDF from "jspdf";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export type Modulo = {
   id: string;
@@ -25,7 +33,9 @@ export type Modulo = {
   metaTotal: string; // m³
   qtdMaquinas: string;
   qtdOperadoresPorMaquina: string;
+  ajusteSistemico?: string; // m³ +/-
 };
+
 
 const MODULOS_KEY = "harvest:modulos";
 
@@ -81,6 +91,7 @@ function ModulosPage() {
     metaTotal: "",
     qtdMaquinas: "15",
     qtdOperadoresPorMaquina: "3",
+    ajusteSistemico: "",
   });
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -95,9 +106,11 @@ function ModulosPage() {
       metaTotal: "",
       qtdMaquinas: "15",
       qtdOperadoresPorMaquina: "3",
+      ajusteSistemico: "",
     });
     setEditingId(null);
   };
+
 
   const calc = (m: Modulo) => {
     const meta = parseNum(m.metaTotal);
@@ -134,11 +147,29 @@ function ModulosPage() {
       metaTotal: m.metaTotal,
       qtdMaquinas: m.qtdMaquinas,
       qtdOperadoresPorMaquina: m.qtdOperadoresPorMaquina,
+      ajusteSistemico: m.ajusteSistemico ?? "",
     });
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const gerarPDF = (moduloAlvo?: Modulo) => {
+  // PDF options dialog
+  const [pdfOpen, setPdfOpen] = useState(false);
+  const [pdfTarget, setPdfTarget] = useState<Modulo | null>(null);
+  const [pdfOpts, setPdfOpts] = useState({
+    arvores: true,
+    m3: true,
+    ajuste: true,
+    horas: true,
+    eficiencia: true,
+    relatorios: true,
+  });
+  const abrirPdfDialog = (m?: Modulo) => {
+    setPdfTarget(m ?? null);
+    setPdfOpen(true);
+  };
+
+
+  const gerarPDF = (moduloAlvo?: Modulo, opts = pdfOpts) => {
     const usandoAntigo = !!moduloAlvo;
     const start = usandoAntigo ? new Date(moduloAlvo!.dataInicial) : rangeAtual.start;
     const end = usandoAntigo ? new Date(moduloAlvo!.dataFinal) : rangeAtual.end;
@@ -160,20 +191,22 @@ function ModulosPage() {
       op += parseHoras(r.paradaOperacional);
       mec += parseHoras(r.paradaMecanica);
     }
-    const m3h = trab > 0 ? m3 / trab : 0;
-    const arvh = trab > 0 ? arv / trab : 0;
     const mod = usandoAntigo ? moduloAlvo! : (modulos.find((m) => {
       const ms = m.dataInicial; const me = m.dataFinal;
       if (!ms || !me) return false;
       const sk = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-${String(start.getDate()).padStart(2, "0")}`;
       return ms <= sk && me >= sk;
     }) || modulos[0]);
+    const ajuste = mod ? parseNum(mod.ajusteSistemico || "0") : 0;
+    const m3Ajustado = m3 + ajuste;
+    const m3h = trab > 0 ? m3Ajustado / trab : 0;
+    const arvh = trab > 0 ? arv / trab : 0;
     const metaPessoal = mod
       ? parseNum(mod.metaTotal) /
         Math.max(1, parseNum(mod.qtdMaquinas)) /
         Math.max(1, parseNum(mod.qtdOperadoresPorMaquina))
       : 0;
-    const pct = metaPessoal > 0 ? (m3 / metaPessoal) * 100 : 0;
+    const pct = metaPessoal > 0 ? (m3Ajustado / metaPessoal) * 100 : 0;
 
     const doc = new jsPDF();
     let y = 18;
@@ -186,15 +219,22 @@ function ModulosPage() {
     doc.setFontSize(12);
     doc.text("Totais", 14, y); y += 6;
     doc.setFontSize(10);
-    const linhas = [
-      ["Árvores", fmt(arv)],
-      ["Volume (m³)", `${fmt(m3)} m³`],
-      ["Hora trabalhando", fmtHoras(trab)],
-      ["Parada operacional", fmtHoras(op)],
-      ["Parada mecânica", fmtHoras(mec)],
-      ["Produtividade", `${fmt(arvh)} árv/h`],
-      ["m³/h", `${fmt(m3h)} m³/h`],
-    ];
+    const linhas: [string, string][] = [];
+    if (opts.arvores) linhas.push(["Árvores", fmt(arv)]);
+    if (opts.m3) {
+      linhas.push(["Volume bruto (m³)", `${fmt(m3)} m³`]);
+      linhas.push(["Volume ajustado (m³)", `${fmt(m3Ajustado)} m³`]);
+    }
+    if (opts.ajuste) linhas.push(["Ajuste sistêmico", `${ajuste >= 0 ? "+" : ""}${fmt(ajuste)} m³`]);
+    if (opts.horas) {
+      linhas.push(["Hora trabalhando", fmtHoras(trab)]);
+      linhas.push(["Parada operacional", fmtHoras(op)]);
+      linhas.push(["Parada mecânica", fmtHoras(mec)]);
+    }
+    if (opts.eficiencia) {
+      linhas.push(["Produtividade", `${fmt(arvh)} árv/h`]);
+      linhas.push(["m³/h", `${fmt(m3h)} m³/h`]);
+    }
     for (const [k, v] of linhas) {
       doc.text(`${k}:`, 16, y);
       doc.text(v, 90, y);
@@ -206,36 +246,39 @@ function ModulosPage() {
     doc.setFontSize(10);
     if (mod) {
       doc.text(`Meta: ${fmt(metaPessoal)} m³`, 16, y); y += 6;
-      doc.text(`Realizado: ${fmt(m3)} m³ (${fmt(pct, 1)}%)`, 16, y); y += 8;
+      doc.text(`Realizado: ${fmt(m3Ajustado)} m³ (${fmt(pct, 1)}%)`, 16, y); y += 8;
     } else {
       doc.text("Nenhum módulo cadastrado para o período.", 16, y); y += 8;
     }
 
-    doc.setFontSize(12);
-    doc.text("Relatórios do período", 14, y); y += 6;
-    doc.setFontSize(9);
-    if (rels.length === 0) {
-      doc.text("Sem relatórios.", 16, y);
-    } else {
-      const sorted = [...rels].sort((a, b) => a.data.localeCompare(b.data));
-      for (const r of sorted) {
-        if (y > 280) { doc.addPage(); y = 18; }
-        const f = fazendas.find((x) => x.id === r.fazendaId);
-        const t = f?.talhoes.find((x) => x.id === r.talhaoId);
-        const a = parseNum(r.arv);
-        const v = a * parseNum(t?.vmi || "0");
-        const dataBR = r.data.split("-").reverse().join("/");
-        doc.text(
-          `${dataBR}  ${f?.codigo ?? "?"} T${t?.numero ?? "?"}  Árv ${a}  ${fmt(v)}m³  Tr ${r.horaTrabalhando || "-"} Op ${r.paradaOperacional || "-"} Mec ${r.paradaMecanica || "-"}`,
-          16, y,
-        );
-        y += 5;
+    if (opts.relatorios) {
+      doc.setFontSize(12);
+      doc.text("Relatórios do período", 14, y); y += 6;
+      doc.setFontSize(9);
+      if (rels.length === 0) {
+        doc.text("Sem relatórios.", 16, y);
+      } else {
+        const sorted = [...rels].sort((a, b) => a.data.localeCompare(b.data));
+        for (const r of sorted) {
+          if (y > 280) { doc.addPage(); y = 18; }
+          const f = fazendas.find((x) => x.id === r.fazendaId);
+          const t = f?.talhoes.find((x) => x.id === r.talhaoId);
+          const a = parseNum(r.arv);
+          const v = a * parseNum(t?.vmi || "0");
+          const dataBR = r.data.split("-").reverse().join("/");
+          doc.text(
+            `${dataBR}  ${f?.codigo ?? "?"} T${t?.numero ?? "?"}  Árv ${a}  ${fmt(v)}m³  Tr ${r.horaTrabalhando || "-"} Op ${r.paradaOperacional || "-"} Mec ${r.paradaMecanica || "-"}`,
+            16, y,
+          );
+          y += 5;
+        }
       }
     }
 
     doc.save(`harvest-${periodo.replace(/\//g, "-").replace(/ /g, "")}.pdf`);
     toast.success("PDF gerado.");
   };
+
 
   return (
     <div className="space-y-6">
@@ -247,7 +290,7 @@ function ModulosPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Button onClick={() => gerarPDF()} className="w-full">
+          <Button onClick={() => abrirPdfDialog()} className="w-full">
             <FileDown className="h-4 w-4" /> Gerar PDF do mês de produção
           </Button>
           <p className="mt-2 text-[11px] text-muted-foreground">
@@ -313,7 +356,20 @@ function ModulosPage() {
                 onChange={(e) => update("qtdOperadoresPorMaquina", e.target.value)}
               />
             </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label>Ajuste sistêmico (m³)</Label>
+              <Input
+                inputMode="decimal"
+                placeholder="Ex: -154.00 ou 50.00"
+                value={draft.ajusteSistemico ?? ""}
+                onChange={(e) => update("ajusteSistemico", e.target.value)}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Acrescenta ou retira do total acumulado. Aceita valores positivos e negativos. Não afeta o gráfico "Produtividade por dia".
+              </p>
+            </div>
           </div>
+
 
           <div className="grid gap-3 rounded-md border border-primary/20 bg-secondary/30 p-3 sm:grid-cols-3">
             <Stat icon={<Target className="h-4 w-4" />} label="Meta / máquina" value={`${fmt(previa.porMaquina)} m³`} />
@@ -383,7 +439,7 @@ function ModulosPage() {
                 </div>
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>{dataInic.toLocaleDateString("pt-BR")} → {dataFim.toLocaleDateString("pt-BR")}</span>
-                  <Button size="sm" variant="secondary" onClick={() => gerarPDF(m)}>
+                  <Button size="sm" variant="secondary" onClick={() => abrirPdfDialog(m)}>
                     <FileDown className="mr-1 h-3 w-3" /> PDF
                   </Button>
                 </div>
@@ -392,9 +448,47 @@ function ModulosPage() {
           );
         })}
       </div>
+
+      <Dialog open={pdfOpen} onOpenChange={setPdfOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Personalizar PDF</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 text-sm">
+            {([
+              ["arvores", "Total de árvores"],
+              ["m3", "Metros cúbicos totais"],
+              ["ajuste", "Ajuste sistêmico do período"],
+              ["horas", "Horas de trabalho e paradas"],
+              ["eficiencia", "Eficiência geral (Arv/h e m³/h)"],
+              ["relatorios", "Todos os relatórios do mês"],
+            ] as const).map(([k, label]) => (
+              <label key={k} className="flex items-center gap-2 cursor-pointer">
+                <Checkbox
+                  checked={pdfOpts[k]}
+                  onCheckedChange={(v) => setPdfOpts((o) => ({ ...o, [k]: !!v }))}
+                />
+                <span>{label}</span>
+              </label>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setPdfOpen(false)}>Cancelar</Button>
+            <Button
+              onClick={() => {
+                gerarPDF(pdfTarget ?? undefined, pdfOpts);
+                setPdfOpen(false);
+              }}
+            >
+              <FileDown className="h-4 w-4" /> Gerar PDF
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
 
 function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
