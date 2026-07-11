@@ -16,6 +16,14 @@ import {
   productionMonthLabel,
 } from "@/lib/harvest";
 import jsPDF from "jspdf";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export type Modulo = {
   id: string;
@@ -25,7 +33,9 @@ export type Modulo = {
   metaTotal: string; // m³
   qtdMaquinas: string;
   qtdOperadoresPorMaquina: string;
+  ajusteSistemico?: string; // m³ +/-
 };
+
 
 const MODULOS_KEY = "harvest:modulos";
 
