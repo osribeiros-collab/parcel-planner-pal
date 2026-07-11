@@ -235,6 +235,13 @@ function Dashboard() {
                 {trend(pctMeta, 100)}
               </div>
               <Progress value={Math.min(100, pctMeta)} />
+              {ajusteSistemico !== 0 && (
+                <p className="text-[11px] text-muted-foreground">
+                  Ajuste sistêmico aplicado: {ajusteSistemico >= 0 ? "+" : ""}
+                  {fmt(ajusteSistemico)} m³ (bruto {fmt(data.m3Total)} m³)
+                </p>
+              )}
+
             </>
           ) : (
             <p className="text-sm text-muted-foreground">
