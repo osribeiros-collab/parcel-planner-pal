@@ -147,9 +147,27 @@ function ModulosPage() {
       metaTotal: m.metaTotal,
       qtdMaquinas: m.qtdMaquinas,
       qtdOperadoresPorMaquina: m.qtdOperadoresPorMaquina,
+      ajusteSistemico: m.ajusteSistemico ?? "",
     });
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  // PDF options dialog
+  const [pdfOpen, setPdfOpen] = useState(false);
+  const [pdfTarget, setPdfTarget] = useState<Modulo | null>(null);
+  const [pdfOpts, setPdfOpts] = useState({
+    arvores: true,
+    m3: true,
+    ajuste: true,
+    horas: true,
+    eficiencia: true,
+    relatorios: true,
+  });
+  const abrirPdfDialog = (m?: Modulo) => {
+    setPdfTarget(m ?? null);
+    setPdfOpen(true);
+  };
+
 
   const gerarPDF = (moduloAlvo?: Modulo) => {
     const usandoAntigo = !!moduloAlvo;
