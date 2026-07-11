@@ -179,7 +179,12 @@ function Dashboard() {
       Math.max(1, parseNum(moduloAtivo.qtdMaquinas)) /
       Math.max(1, parseNum(moduloAtivo.qtdOperadoresPorMaquina))
     : 0;
-  const pctMeta = metaPessoal > 0 ? (data.m3Total / metaPessoal) * 100 : 0;
+  const ajusteSistemico = moduloAtivo ? parseNum(moduloAtivo.ajusteSistemico || "0") : 0;
+  const m3TotalAjustado = data.m3Total + ajusteSistemico;
+  const m3hAjustado = data.trabalho > 0 ? m3TotalAjustado / data.trabalho : 0;
+  const eficienciaAjustada =
+    data.metaM3Hmed > 0 ? (m3hAjustado / data.metaM3Hmed) * 100 : 0;
+  const pctMeta = metaPessoal > 0 ? (m3TotalAjustado / metaPessoal) * 100 : 0;
 
   const chart = [
     {
@@ -190,9 +195,10 @@ function Dashboard() {
     {
       name: "m³/h",
       Meta: Number(data.metaM3Hmed.toFixed(2)),
-      Produzido: Number(data.m3h.toFixed(2)),
+      Produzido: Number(m3hAjustado.toFixed(2)),
     },
   ];
+
 
   const trend = (val: number, meta: number) => {
     if (meta <= 0) return null;
