@@ -31,6 +31,7 @@ export type Relatorio = {
 
 export const FAZENDAS_KEY = "harvest:fazendas";
 export const RELATORIOS_KEY = "harvest:relatorios";
+export const AJUSTE_KEY = "harvest:ajusteSistemico";
 
 export function useLocalState<T>(key: string, initial: T) {
   const [value, setValue] = useState<T>(initial);

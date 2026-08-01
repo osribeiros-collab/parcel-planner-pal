@@ -12,6 +12,7 @@ import {
   Relatorio,
   FAZENDAS_KEY,
   RELATORIOS_KEY,
+  AJUSTE_KEY,
   getProductionMonthRange,
   productionMonthLabel,
 } from "@/lib/harvest";
