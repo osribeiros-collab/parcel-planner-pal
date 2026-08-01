@@ -18,10 +18,13 @@ import {
   Relatorio,
   FAZENDAS_KEY,
   RELATORIOS_KEY,
+  AJUSTE_KEY,
   useLocalState,
   isInProductionMonth,
   productionMonthLabel,
 } from "@/lib/harvest";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import type { Modulo } from "./modulos";
 import {
   BarChart,
@@ -71,6 +74,7 @@ function Dashboard() {
   const [fazendas] = useLocalState<Fazenda[]>(FAZENDAS_KEY, []);
   const [relatorios] = useLocalState<Relatorio[]>(RELATORIOS_KEY, []);
   const [modulos] = useLocalState<Modulo[]>(MODULOS_KEY, []);
+  const [ajusteStr, setAjusteStr] = useLocalState<string>(AJUSTE_KEY, "");
 
   const periodoLabel = productionMonthLabel();
 
@@ -179,7 +183,7 @@ function Dashboard() {
       Math.max(1, parseNum(moduloAtivo.qtdMaquinas)) /
       Math.max(1, parseNum(moduloAtivo.qtdOperadoresPorMaquina))
     : 0;
-  const ajusteSistemico = moduloAtivo ? parseNum(moduloAtivo.ajusteSistemico || "0") : 0;
+  const ajusteSistemico = parseNum(ajusteStr || "0");
   const m3TotalAjustado = data.m3Total + ajusteSistemico;
   const m3hAjustado = data.trabalho > 0 ? m3TotalAjustado / data.trabalho : 0;
   const eficienciaAjustada =
