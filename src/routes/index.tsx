@@ -18,10 +18,13 @@ import {
   Relatorio,
   FAZENDAS_KEY,
   RELATORIOS_KEY,
+  AJUSTE_KEY,
   useLocalState,
   isInProductionMonth,
   productionMonthLabel,
 } from "@/lib/harvest";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import type { Modulo } from "./modulos";
 import {
   BarChart,
@@ -71,6 +74,7 @@ function Dashboard() {
   const [fazendas] = useLocalState<Fazenda[]>(FAZENDAS_KEY, []);
   const [relatorios] = useLocalState<Relatorio[]>(RELATORIOS_KEY, []);
   const [modulos] = useLocalState<Modulo[]>(MODULOS_KEY, []);
+  const [ajusteStr, setAjusteStr] = useLocalState<string>(AJUSTE_KEY, "");
 
   const periodoLabel = productionMonthLabel();
 
@@ -179,7 +183,7 @@ function Dashboard() {
       Math.max(1, parseNum(moduloAtivo.qtdMaquinas)) /
       Math.max(1, parseNum(moduloAtivo.qtdOperadoresPorMaquina))
     : 0;
-  const ajusteSistemico = moduloAtivo ? parseNum(moduloAtivo.ajusteSistemico || "0") : 0;
+  const ajusteSistemico = parseNum(ajusteStr || "0");
   const m3TotalAjustado = data.m3Total + ajusteSistemico;
   const m3hAjustado = data.trabalho > 0 ? m3TotalAjustado / data.trabalho : 0;
   const eficienciaAjustada =
@@ -320,6 +324,31 @@ function Dashboard() {
           value={`${fmt(data.eo, 1)}%`}
         />
       </div>
+
+      <Card className="border-primary/20">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-primary">
+            <Percent className="h-5 w-5" /> Ajuste sistêmico (m³)
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Label className="text-xs text-muted-foreground">
+            Valor a somar ou subtrair do total acumulado
+          </Label>
+          <Input
+            inputMode="decimal"
+            placeholder="Ex: -154,00 ou 50,00"
+            value={ajusteStr}
+            onChange={(e) => setAjusteStr(e.target.value)}
+          />
+          <p className="text-[11px] text-muted-foreground">
+            Bruto {fmt(data.m3Total)} m³ → ajustado {fmt(m3TotalAjustado)} m³. Não afeta o
+            gráfico "Produtividade por dia".
+          </p>
+        </CardContent>
+      </Card>
+
+
 
       <Card className="border-primary/20 bg-gradient-to-br from-secondary/20 to-background">
         <CardHeader>
