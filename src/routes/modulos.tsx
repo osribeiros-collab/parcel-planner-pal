@@ -80,6 +80,8 @@ function ModulosPage() {
   const [modulos, setModulos] = useLocalState<Modulo[]>(MODULOS_KEY, []);
   const [fazendas] = useLocalState<Fazenda[]>(FAZENDAS_KEY, []);
   const [relatorios] = useLocalState<Relatorio[]>(RELATORIOS_KEY, []);
+  const [ajusteStr] = useLocalState<string>(AJUSTE_KEY, "");
+  const ajusteSistemico = parseNum(ajusteStr || "0");
 
   const periodoAtual = productionMonthLabel();
   const rangeAtual = getProductionMonthRange();
@@ -197,7 +199,7 @@ function ModulosPage() {
       const sk = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-${String(start.getDate()).padStart(2, "0")}`;
       return ms <= sk && me >= sk;
     }) || modulos[0]);
-    const ajuste = mod ? parseNum(mod.ajusteSistemico || "0") : 0;
+    const ajuste = ajusteSistemico;
     const m3Ajustado = m3 + ajuste;
     const m3h = trab > 0 ? m3Ajustado / trab : 0;
     const arvh = trab > 0 ? arv / trab : 0;
@@ -355,18 +357,6 @@ function ModulosPage() {
                 value={draft.qtdOperadoresPorMaquina}
                 onChange={(e) => update("qtdOperadoresPorMaquina", e.target.value)}
               />
-            </div>
-            <div className="space-y-2 sm:col-span-2">
-              <Label>Ajuste sistêmico (m³)</Label>
-              <Input
-                inputMode="decimal"
-                placeholder="Ex: -154.00 ou 50.00"
-                value={draft.ajusteSistemico ?? ""}
-                onChange={(e) => update("ajusteSistemico", e.target.value)}
-              />
-              <p className="text-[11px] text-muted-foreground">
-                Acrescenta ou retira do total acumulado. Aceita valores positivos e negativos. Não afeta o gráfico "Produtividade por dia".
-              </p>
             </div>
           </div>
 
