@@ -325,6 +325,31 @@ function Dashboard() {
         />
       </div>
 
+      <Card className="border-primary/20">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-primary">
+            <Percent className="h-5 w-5" /> Ajuste sistêmico (m³)
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Label className="text-xs text-muted-foreground">
+            Valor a somar ou subtrair do total acumulado
+          </Label>
+          <Input
+            inputMode="decimal"
+            placeholder="Ex: -154,00 ou 50,00"
+            value={ajusteStr}
+            onChange={(e) => setAjusteStr(e.target.value)}
+          />
+          <p className="text-[11px] text-muted-foreground">
+            Bruto {fmt(data.m3Total)} m³ → ajustado {fmt(m3TotalAjustado)} m³. Não afeta o
+            gráfico "Produtividade por dia".
+          </p>
+        </CardContent>
+      </Card>
+
+
+
       <Card className="border-primary/20 bg-gradient-to-br from-secondary/20 to-background">
         <CardHeader>
           <CardTitle className="flex items-center justify-between text-primary">
