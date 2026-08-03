@@ -190,6 +190,15 @@ function Dashboard() {
     data.metaM3Hmed > 0 ? (m3hAjustado / data.metaM3Hmed) * 100 : 0;
   const pctMeta = metaPessoal > 0 ? (m3TotalAjustado / metaPessoal) * 100 : 0;
 
+  // Aderência Máquina (%) — 25% peso horas, 75% peso produção
+  const metaHoras = data.metaM3Periodo > 0 && data.metaM3Hmed > 0
+    ? data.metaM3Periodo / data.metaM3Hmed
+    : 0;
+  const aderenciaHoras = metaHoras > 0 ? data.trabalho / metaHoras : 0;
+  const aderenciaProducao = data.metaM3Periodo > 0 ? m3TotalAjustado / data.metaM3Periodo : 0;
+  const aderenciaMaquina = (aderenciaHoras * 0.25) + (aderenciaProducao * 0.75);
+  const pctAderencia = aderenciaMaquina * 100;
+
   const chart = [
     {
       name: "Arv/h",
@@ -290,7 +299,34 @@ function Dashboard() {
         </CardContent>
       </Card>
 
-
+      <Card className="border-primary/20 bg-gradient-to-br from-secondary/30 to-background">
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between gap-2 text-primary">
+            <span className="flex items-center gap-2"><Percent className="h-5 w-5" /> Aderência Máquina (%)</span>
+            <span className="text-[10px] font-normal text-muted-foreground">{periodoLabel}</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {data.metaM3Periodo > 0 && data.metaM3Hmed > 0 ? (
+            <>
+              <div className="flex items-end justify-between gap-3">
+                <div>
+                  <p className="text-3xl font-bold text-primary">{fmt(pctAderencia, 1)}%</p>
+                  <p className="text-xs text-muted-foreground">
+                    Horas {fmt(aderenciaHoras * 100, 1)}% · Produção {fmt(aderenciaProducao * 100, 1)}%
+                  </p>
+                </div>
+                {trend(pctAderencia, 100)}
+              </div>
+              <Progress value={Math.min(100, pctAderencia)} className="[&>div]:bg-amber-500" />
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Registre relatórios com horas e meta m³/h para calcular a aderência.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard
