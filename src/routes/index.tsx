@@ -190,13 +190,10 @@ function Dashboard() {
     data.metaM3Hmed > 0 ? (m3hAjustado / data.metaM3Hmed) * 100 : 0;
   const pctMeta = metaPessoal > 0 ? (m3TotalAjustado / metaPessoal) * 100 : 0;
 
-  // Aderência Máquina (%) — 25% peso horas, 75% peso produção
-  const metaHoras = data.metaM3Periodo > 0 && data.metaM3Hmed > 0
-    ? data.metaM3Periodo / data.metaM3Hmed
-    : 0;
-  const aderenciaHoras = metaHoras > 0 ? data.trabalho / metaHoras : 0;
+  // Aderência Máquina (%) — Ponderado: 25% E.O. + 75% Produção
   const aderenciaProducao = data.metaM3Periodo > 0 ? m3TotalAjustado / data.metaM3Periodo : 0;
-  const aderenciaMaquina = (aderenciaHoras * 0.25) + (aderenciaProducao * 0.75);
+  const eficienciaOperacional = data.eo / 100;
+  const aderenciaMaquina = (eficienciaOperacional * 0.25) + (aderenciaProducao * 0.75);
   const pctAderencia = aderenciaMaquina * 100;
 
   const chart = [
