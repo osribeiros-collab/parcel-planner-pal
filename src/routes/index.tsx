@@ -190,13 +190,10 @@ function Dashboard() {
     data.metaM3Hmed > 0 ? (m3hAjustado / data.metaM3Hmed) * 100 : 0;
   const pctMeta = metaPessoal > 0 ? (m3TotalAjustado / metaPessoal) * 100 : 0;
 
-  // Aderência Máquina (%) — 25% peso horas, 75% peso produção
-  const metaHoras = data.metaM3Periodo > 0 && data.metaM3Hmed > 0
-    ? data.metaM3Periodo / data.metaM3Hmed
-    : 0;
-  const aderenciaHoras = metaHoras > 0 ? data.trabalho / metaHoras : 0;
+  // Aderência Máquina (%) — Ponderado: 25% E.O. + 75% Produção
   const aderenciaProducao = data.metaM3Periodo > 0 ? m3TotalAjustado / data.metaM3Periodo : 0;
-  const aderenciaMaquina = (aderenciaHoras * 0.25) + (aderenciaProducao * 0.75);
+  const eficienciaOperacional = data.eo / 100;
+  const aderenciaMaquina = (eficienciaOperacional * 0.25) + (aderenciaProducao * 0.75);
   const pctAderencia = aderenciaMaquina * 100;
 
   const chart = [
@@ -307,13 +304,13 @@ function Dashboard() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {data.metaM3Periodo > 0 && data.metaM3Hmed > 0 ? (
+          {data.metaM3Periodo > 0 ? (
             <>
               <div className="flex items-end justify-between gap-3">
                 <div>
                   <p className="text-3xl font-bold text-primary">{fmt(pctAderencia, 1)}%</p>
                   <p className="text-xs text-muted-foreground">
-                    Horas {fmt(aderenciaHoras * 100, 1)}% · Produção {fmt(aderenciaProducao * 100, 1)}%
+                    E.O. {fmt(data.eo, 1)}% · Produção {fmt(aderenciaProducao * 100, 1)}%
                   </p>
                 </div>
                 {trend(pctAderencia, 100)}
