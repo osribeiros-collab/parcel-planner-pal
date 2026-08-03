@@ -304,13 +304,13 @@ function Dashboard() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {data.metaM3Periodo > 0 && data.metaM3Hmed > 0 ? (
+          {data.metaM3Periodo > 0 ? (
             <>
               <div className="flex items-end justify-between gap-3">
                 <div>
                   <p className="text-3xl font-bold text-primary">{fmt(pctAderencia, 1)}%</p>
                   <p className="text-xs text-muted-foreground">
-                    Horas {fmt(aderenciaHoras * 100, 1)}% · Produção {fmt(aderenciaProducao * 100, 1)}%
+                    E.O. {fmt(data.eo, 1)}% · Produção {fmt(aderenciaProducao * 100, 1)}%
                   </p>
                 </div>
                 {trend(pctAderencia, 100)}
