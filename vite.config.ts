@@ -5,11 +5,58 @@
 //     error logger plugins, and sandbox detection (port/host/strictPort).
 // You can pass additional config via defineConfig({ vite: { ... } }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
+import { VitePWA } from "vite-plugin-pwa";
 
 // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
 // @cloudflare/vite-plugin builds from this — wrangler.jsonc main alone is insufficient.
 export default defineConfig({
   tanstackStart: {
     server: { entry: "server" },
+  },
+  vite: {
+    plugins: [
+      VitePWA({
+        strategies: "generateSW",
+        registerType: "autoUpdate",
+        injectRegister: null,
+        filename: "sw.js",
+        devOptions: { enabled: false },
+        manifest: false,
+        workbox: {
+          globDirectory: "dist/client",
+          globPatterns: ["**/*.{js,css,html,png,svg,ico,webmanifest,woff,woff2,wasm}"],
+          maximumFileSizeToCacheInBytes: 12 * 1024 * 1024,
+          navigateFallback: null,
+          cleanupOutdatedCaches: true,
+          clientsClaim: true,
+          skipWaiting: true,
+          runtimeCaching: [
+            {
+              // HTML navigations: sempre tenta a rede, cai no cache quando offline
+              urlPattern: ({ request, url }) =>
+                request.mode === "navigate" && !url.pathname.startsWith("/~oauth"),
+              handler: "NetworkFirst",
+              options: {
+                cacheName: "harvest-pages",
+                networkTimeoutSeconds: 4,
+                expiration: { maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 * 60 },
+              },
+            },
+            {
+              // Assets do build (chunks lazy: pdfjs, jspdf, etc.)
+              urlPattern: ({ request, sameOrigin }) =>
+                sameOrigin &&
+                ["script", "style", "worker", "font", "image"].includes(request.destination),
+              handler: "CacheFirst",
+              options: {
+                cacheName: "harvest-assets",
+                expiration: { maxEntries: 300, maxAgeSeconds: 60 * 60 * 24 * 365 },
+                cacheableResponse: { statuses: [0, 200] },
+              },
+            },
+          ],
+        },
+      }),
+    ],
   },
 });
