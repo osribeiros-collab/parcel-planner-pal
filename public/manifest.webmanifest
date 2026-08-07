@@ -1,13 +1,17 @@
 {
+  "id": "/?homescreen=1",
   "name": "Harvest - Controle de Produção",
   "short_name": "Harvest",
-  "description": "Controle de produção florestal offline",
-  "start_url": "/",
+  "description": "Controle de produção florestal 100% offline: fazendas, talhões, relatórios diários, metas e mapas em PDF.",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "start_url": "/?homescreen=1",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0a0a0a",
   "theme_color": "#0a0a0a",
+  "categories": ["productivity", "business", "utilities"],
   "icons": [
     {
       "src": "/icon-192.png",
@@ -20,6 +24,22 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot-narrow.png",
+      "sizes": "412x915",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Painel de produção no celular"
+    },
+    {
+      "src": "/screenshot-wide.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Painel de produção no desktop"
     }
   ]
 }
