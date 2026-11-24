@@ -1,0 +1,4 @@
+- [ ] Remover Mapas e liberar o armazenamento antigo sem bloquear o app.
+- [ ] Separar ajustes por ciclo, preservar históricos e corrigir PDFs.
+- [ ] Adicionar foto por campo com leitura local e edição livre.
+- [ ] Validar regras, fluxo móvel e atualização de segurança.

@@ -18,11 +18,12 @@ import {
   Relatorio,
   FAZENDAS_KEY,
   RELATORIOS_KEY,
-  AJUSTE_KEY,
   useLocalState,
   isInProductionMonth,
   productionMonthLabel,
 } from "@/lib/harvest";
+import { useCycleAdjustment } from "@/hooks/use-cycle-adjustment";
+import { dateFromKey } from "@/lib/productionAdjustments";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { Modulo } from "./modulos";
@@ -44,6 +45,10 @@ export const Route = createFileRoute("/")({
     meta: [
       { title: "Harvest — Início" },
       { name: "description", content: "Painel com produtividade, metas e totais." },
+      { property: "og:title", content: "Ribeiro — Painel de produção" },
+      { property: "og:description", content: "Produtividade, metas e indicadores locais por ciclo de produção." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
 });
@@ -74,9 +79,10 @@ function Dashboard() {
   const [fazendas] = useLocalState<Fazenda[]>(FAZENDAS_KEY, []);
   const [relatorios] = useLocalState<Relatorio[]>(RELATORIOS_KEY, []);
   const [modulos] = useLocalState<Modulo[]>(MODULOS_KEY, []);
-  const [ajusteStr, setAjusteStr] = useLocalState<string>(AJUSTE_KEY, "");
+  const { adjustment: ajusteStr, setAdjustment: setAjusteStr, currentCycle, ready, error } = useCycleAdjustment();
+  const referencia = currentCycle ? dateFromKey(currentCycle) : new Date();
 
-  const periodoLabel = productionMonthLabel();
+  const periodoLabel = productionMonthLabel(referencia);
 
   const data = useMemo(() => {
     let arv = 0;
@@ -93,7 +99,7 @@ function Dashboard() {
 
 
     for (const r of relatorios) {
-      if (!isInProductionMonth(r.data)) continue;
+      if (!isInProductionMonth(r.data, referencia)) continue;
       const f = fazendas.find((x) => x.id === r.fazendaId);
       const t = f?.talhoes.find((x) => x.id === r.talhaoId);
       const a = parseNum(r.arv);
@@ -174,7 +180,7 @@ function Dashboard() {
       talhoesCount: talhoesUsados.size,
       diario,
     };
-  }, [relatorios, fazendas]);
+  }, [relatorios, fazendas, currentCycle]);
 
 
   const moduloAtivo = modulos[0];
@@ -369,11 +375,15 @@ function Dashboard() {
             Valor a somar ou subtrair do total acumulado
           </Label>
           <Input
+            aria-label="Ajuste sistêmico (m³)"
+            disabled={!ready}
             inputMode="decimal"
             placeholder="Ex: -154,00 ou 50,00"
             value={ajusteStr}
             onChange={(e) => setAjusteStr(e.target.value)}
           />
+          {error && <p role="status" className="text-xs text-destructive">{error}</p>}
+          <p className="text-[11px] text-muted-foreground">Ciclo aberto: {periodoLabel}. Ajustes de ciclos encerrados permanecem salvos.</p>
           <p className="text-[11px] text-muted-foreground">
             Bruto {fmt(data.m3Total)} m³ → ajustado {fmt(m3TotalAjustado)} m³. Não afeta o
             gráfico "Produtividade por dia".

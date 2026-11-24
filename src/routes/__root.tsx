@@ -7,7 +7,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { CalendarDays, Boxes, LayoutDashboard, Map as MapIcon, TreePine } from "lucide-react";
+import { CalendarDays, Boxes, LayoutDashboard, TreePine } from "lucide-react";
 import { Toaster } from "@/components/ui/sonner";
 
 import appCss from "../styles.css?url";
@@ -63,14 +63,6 @@ function AppShell() {
           >
             <Boxes className="h-5 w-5" />
             Módulo
-          </Link>
-          <Link
-            to="/mapas"
-            className="flex flex-1 flex-col items-center gap-1 py-3 text-xs text-muted-foreground transition-colors"
-            activeProps={{ className: "flex flex-1 flex-col items-center gap-1 py-3 text-xs text-primary font-semibold" }}
-          >
-            <MapIcon className="h-5 w-5" />
-            Mapas
           </Link>
           <Link
             to="/relatorios"
@@ -158,8 +150,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:title", content: "Harvest — Controle de Produção" },
       { property: "og:description", content: "Controle de produção florestal offline" },
       { name: "twitter:description", content: "Controle de produção florestal offline" },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/e74a06d7-be29-4b93-81f0-81382185d043/id-preview-1ee4c275--b1ef5495-5492-43bd-828b-de902587c001.lovable.app-1779103431520.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/e74a06d7-be29-4b93-81f0-81382185d043/id-preview-1ee4c275--b1ef5495-5492-43bd-828b-de902587c001.lovable.app-1779103431520.png" },
       { name: "twitter:card", content: "summary_large_image" },
       { property: "og:type", content: "website" },
     ],
@@ -191,7 +181,13 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  useEffect(() => { loadTheme(); registerOfflineSW(); }, []);
+  useEffect(() => {
+    loadTheme();
+    registerOfflineSW();
+    // Delete only the retired maps database, never personal production data.
+    // A blocked deletion (older tab open) must not hold up startup.
+    try { indexedDB.deleteDatabase("harvest_mapas_db"); } catch {}
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

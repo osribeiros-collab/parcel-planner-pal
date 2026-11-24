@@ -12,10 +12,11 @@ import {
   Relatorio,
   FAZENDAS_KEY,
   RELATORIOS_KEY,
-  AJUSTE_KEY,
   getProductionMonthRange,
   productionMonthLabel,
 } from "@/lib/harvest";
+import { useCycleAdjustment } from "@/hooks/use-cycle-adjustment";
+import { adjustmentForRange, dateFromKey } from "@/lib/productionAdjustments";
 import jsPDF from "jspdf";
 import {
   Dialog,
@@ -46,6 +47,10 @@ export const Route = createFileRoute("/modulos")({
     meta: [
       { title: "Harvest — Módulo" },
       { name: "description", content: "Meta do módulo dividida por máquina e operador." },
+      { property: "og:title", content: "Ribeiro — Módulos e resumos" },
+      { property: "og:description", content: "Metas por operador e resumos de produção com ajustes locais por ciclo." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
 });
@@ -81,11 +86,11 @@ function ModulosPage() {
   const [modulos, setModulos] = useLocalState<Modulo[]>(MODULOS_KEY, []);
   const [fazendas] = useLocalState<Fazenda[]>(FAZENDAS_KEY, []);
   const [relatorios] = useLocalState<Relatorio[]>(RELATORIOS_KEY, []);
-  const [ajusteStr] = useLocalState<string>(AJUSTE_KEY, "");
-  const ajusteSistemico = parseNum(ajusteStr || "0");
+  const { values: ajustes, currentCycle } = useCycleAdjustment();
 
-  const periodoAtual = productionMonthLabel();
-  const rangeAtual = getProductionMonthRange();
+  const referencia = currentCycle ? dateFromKey(currentCycle) : new Date();
+  const periodoAtual = productionMonthLabel(referencia);
+  const rangeAtual = getProductionMonthRange(referencia);
 
   const [draft, setDraft] = useState<Omit<Modulo, "id">>({
     mesReferencia: "",
@@ -173,14 +178,15 @@ function ModulosPage() {
 
 
   const gerarPDF = (moduloAlvo?: Modulo, opts = pdfOpts) => {
-    const usandoAntigo = !!moduloAlvo;
-    const start = usandoAntigo ? new Date(moduloAlvo!.dataInicial) : rangeAtual.start;
-    const end = usandoAntigo ? new Date(moduloAlvo!.dataFinal) : rangeAtual.end;
-    const periodo = usandoAntigo ? moduloAlvo!.mesReferencia : periodoAtual;
+    const start = moduloAlvo ? dateFromKey(moduloAlvo.dataInicial) : rangeAtual.start;
+    const end = moduloAlvo ? dateFromKey(moduloAlvo.dataFinal) : rangeAtual.end;
+    const periodo = moduloAlvo ? moduloAlvo.mesReferencia : periodoAtual;
+    const dateKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    const startKey = dateKey(start);
+    const endKey = dateKey(end);
 
     const rels = relatorios.filter((r) => {
-      const dataR = new Date(r.data);
-      return dataR >= start && dataR <= end;
+      return r.data >= startKey && r.data <= endKey;
     });
 
     let arv = 0, trab = 0, op = 0, mec = 0, m3 = 0;
@@ -194,13 +200,13 @@ function ModulosPage() {
       op += parseHoras(r.paradaOperacional);
       mec += parseHoras(r.paradaMecanica);
     }
-    const mod = usandoAntigo ? moduloAlvo! : (modulos.find((m) => {
+    const mod = moduloAlvo ?? (modulos.find((m) => {
       const ms = m.dataInicial; const me = m.dataFinal;
       if (!ms || !me) return false;
       const sk = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-${String(start.getDate()).padStart(2, "0")}`;
       return ms <= sk && me >= sk;
     }) || modulos[0]);
-    const ajuste = ajusteSistemico;
+    const ajuste = adjustmentForRange(ajustes, startKey, endKey);
     const m3Ajustado = m3 + ajuste;
     const m3h = trab > 0 ? m3Ajustado / trab : 0;
     const arvh = trab > 0 ? arv / trab : 0;

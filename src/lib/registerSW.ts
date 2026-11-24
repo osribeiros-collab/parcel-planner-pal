@@ -13,8 +13,10 @@ function shouldRegister(): boolean {
     return false;
   }
 
-  const host = window.location.hostname;
-  if (host.startsWith("id-preview--") || host.startsWith("preview--")) return false;
+  const host = window.location.hostname.toLowerCase();
+  const lovableDomain = /\.(lovable\.app|gpt-eng\.com|gptengineer\.run)$/.test(host);
+  if (lovableDomain && /^(?:id-preview|preview)(?:-[a-z0-9]+)?--.+$/.test(host.split(".")[0])) return false;
+  if (lovableDomain && /^project--.+-dev$/.test(host.split(".")[0])) return false;
   if (host === "lovableproject.com" || host.endsWith(".lovableproject.com")) return false;
   if (host === "lovableproject-dev.com" || host.endsWith(".lovableproject-dev.com")) return false;
   if (host === "beta.lovable.dev" || host.endsWith(".beta.lovable.dev")) return false;
@@ -42,9 +44,11 @@ export function registerOfflineSW() {
     return;
   }
 
-  window.addEventListener("load", () => {
+  const register = () => {
     navigator.serviceWorker
       .register(SW_URL, { scope: "/" })
       .catch(e => console.warn("SW register failed", e));
-  });
+  };
+  if (document.readyState === "complete") register();
+  else window.addEventListener("load", register, { once: true });
 }

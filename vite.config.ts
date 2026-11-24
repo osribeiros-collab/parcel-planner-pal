@@ -25,7 +25,7 @@ export default defineConfig({
         workbox: {
           globDirectory: "dist/client",
           swDest: "dist/client/sw.js",
-          globPatterns: ["**/*.{js,css,html,png,svg,ico,webmanifest,woff,woff2,wasm}"],
+          globPatterns: ["**/*.{js,css,html,png,svg,ico,webmanifest,woff,woff2,wasm,gz}"],
           maximumFileSizeToCacheInBytes: 12 * 1024 * 1024,
           navigateFallback: null,
           cleanupOutdatedCaches: true,
@@ -34,8 +34,8 @@ export default defineConfig({
           runtimeCaching: [
             {
               // HTML navigations: sempre tenta a rede, cai no cache quando offline
-              urlPattern: ({ request, url }) =>
-                request.mode === "navigate" && !url.pathname.startsWith("/~oauth"),
+              urlPattern: ({ request, url, sameOrigin }) =>
+                sameOrigin && request.mode === "navigate" && !url.pathname.startsWith("/~oauth"),
               handler: "NetworkFirst",
               options: {
                 cacheName: "harvest-pages",
@@ -45,8 +45,8 @@ export default defineConfig({
             },
             {
               // Assets do build (chunks lazy: pdfjs, jspdf, etc.)
-              urlPattern: ({ request, sameOrigin }) =>
-                sameOrigin &&
+              urlPattern: ({ request, url, sameOrigin }) =>
+                sameOrigin && /\/assets\/[^/]+-[A-Za-z0-9_-]{8,}\.[^/]+$/.test(url.pathname) &&
                 ["script", "style", "worker", "font", "image"].includes(request.destination),
               handler: "CacheFirst",
               options: {

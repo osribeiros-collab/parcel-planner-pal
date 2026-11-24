@@ -3,7 +3,8 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { ReportPhotoField } from "@/components/ReportPhotoField";
+import { photoFields } from "@/lib/fieldPhoto";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -38,6 +39,10 @@ export const Route = createFileRoute("/relatorios")({
     meta: [
       { title: "Harvest — Relatórios" },
       { name: "description", content: "Relatórios diários de produção." },
+      { property: "og:title", content: "Ribeiro — Relatórios diários" },
+      { property: "og:description", content: "Relatórios pessoais de produção com edição livre e leitura local de fotos." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
 });
@@ -397,75 +402,14 @@ function Relatorios() {
                       </Select>
                     </div>
 
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">Horímetro inicial</Label>
-                      <Input
-                        value={d.horimetroInicial}
-                        onChange={(e) => updateDraft(idx, { horimetroInicial: e.target.value })}
-                        inputMode="decimal"
-                        placeholder="0,0"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">Horímetro final</Label>
-                      <Input
-                        value={d.horimetroFinal}
-                        onChange={(e) => updateDraft(idx, { horimetroFinal: e.target.value })}
-                        inputMode="decimal"
-                        placeholder="0,0"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">Árv</Label>
-                      <Input
-                        value={d.arv}
-                        onChange={(e) => updateDraft(idx, { arv: e.target.value })}
-                        inputMode="numeric"
-                        placeholder="0"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs flex items-center gap-1">
-                        <Clock className="h-3 w-3" /> Hora trabalhando
-                      </Label>
-                      <Input
-                        type="time"
-                        step={60}
-                        value={d.horaTrabalhando}
-                        onChange={(e) => updateDraft(idx, { horaTrabalhando: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs flex items-center gap-1">
-                        <Clock className="h-3 w-3" /> Parada operacional
-                      </Label>
-                      <Input
-                        type="time"
-                        step={60}
-                        value={d.paradaOperacional}
-                        onChange={(e) => updateDraft(idx, { paradaOperacional: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs flex items-center gap-1">
-                        <Clock className="h-3 w-3" /> Parada mecânica
-                      </Label>
-                      <Input
-                        type="time"
-                        step={60}
-                        value={d.paradaMecanica}
-                        onChange={(e) => updateDraft(idx, { paradaMecanica: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-1.5 sm:col-span-2">
-                      <Label className="text-xs">Observações</Label>
-                      <Textarea
-                        value={d.obs}
-                        onChange={(e) => updateDraft(idx, { obs: e.target.value })}
-                        rows={2}
-                      />
-                    </div>
+                    {photoFields.map(field => <ReportPhotoField
+                      key={field.key}
+                      field={field.key}
+                      label={field.label}
+                      mode={field.mode}
+                      value={d[field.key]}
+                      onChange={value => updateDraft(idx, { [field.key]: value })}
+                    />)}
                   </div>
                   <JornadaAlert
                     trab={d.horaTrabalhando}

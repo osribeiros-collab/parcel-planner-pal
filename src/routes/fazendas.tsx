@@ -19,6 +19,10 @@ export const Route = createFileRoute("/fazendas")({
     meta: [
       { title: "Harvest — Fazendas" },
       { name: "description", content: "Cadastro de fazendas e talhões." },
+      { property: "og:title", content: "Ribeiro — Fazendas e talhões" },
+      { property: "og:description", content: "Cadastro local de fazendas, talhões, VMI e metas de produção." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
 });
